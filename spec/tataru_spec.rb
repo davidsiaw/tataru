@@ -5,6 +5,10 @@ module Tataru
     class RandomCodeResource < Tataru::Resource
       state :digit_count, :replace
       output :code
+
+      def code
+        'aaaaaa'
+      end
     end
 
     class FileResource < Tataru::Resource
@@ -16,6 +20,72 @@ end
 RSpec.describe Tataru do
   it 'has a version number' do
     expect(Tataru::VERSION).not_to be nil
+  end
+
+  context 'given two dependent requirements' do
+    let(:req) do
+      Tataru::Requirements.new do
+        random_code 'mycode' do
+          digit_count 6
+        end
+        file 'afile' do
+          contents mycode.code
+        end
+      end
+    end
+
+    context 'given empty state' do
+      let(:state) { Tataru::State.new }
+
+      it 'has 2 instructions' do
+        plan = Tataru::Planner.new(state, req)
+        expect(plan.instructions.length).to eq 2
+      end
+
+      it 'has correct instructions' do
+        plan = Tataru::Planner.new(state, req)
+        expect(plan.instructions[0].action).to eq :create
+        expect(plan.instructions[0].id).to eq 'mycode'
+        expect(plan.instructions[0].state).to eq(digit_count: 6)
+
+        expect(plan.instructions[1].action).to eq :create
+        expect(plan.instructions[1].id).to eq 'afile'
+        expect(plan.instructions[1].state[:contents].class).to eq Tataru::DoLater::MemberCallPlaceholder
+      end
+    end
+  end
+
+  context 'given two dependent requirements flipped' do
+    let(:req) do
+      Tataru::Requirements.new do
+        file 'afile' do
+          contents mycode.code
+        end
+        random_code 'mycode' do
+          digit_count 6
+        end
+      end
+    end
+
+    context 'given empty state' do
+      let(:state) { Tataru::State.new }
+
+      it 'has 2 instructions' do
+        plan = Tataru::Planner.new(state, req)
+        expect(plan.instructions.length).to eq 2
+      end
+
+      it 'has correct instructions' do
+        plan = Tataru::Planner.new(state, req)
+        expect(plan.instructions[0].action).to eq :create
+        expect(plan.instructions[0].id).to eq 'mycode'
+        expect(plan.instructions[0].state).to eq(digit_count: 6)
+
+        expect(plan.instructions[1].action).to eq :create
+        expect(plan.instructions[1].id).to eq 'afile'
+        expect(plan.instructions[1].state[:contents].class).to eq Tataru::DoLater::MemberCallPlaceholder
+      end
+    end
   end
 
   context 'not all state specified' do

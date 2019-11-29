@@ -19,7 +19,7 @@ module Tataru
       res = ResourceDSL.new(rclass.new)
       res.instance_exec(&block) if block
       @resource_list[name] = {
-        type: type, dependencies: [],
+        type: type, dependencies: res.dependencies,
         state: res.fields, errors: res.errors
       }
     rescue NameError
