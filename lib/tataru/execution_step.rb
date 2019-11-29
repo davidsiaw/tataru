@@ -41,7 +41,7 @@ module Tataru
 
     def execute_begin!
       instance_of_id.send(@instruction.action, @state)
-      send(:"begin_#{overall_action}")
+      [send(:"begin_#{overall_action}"), true]
     end
 
     def begin_create
@@ -68,11 +68,12 @@ module Tataru
 
     def execute_wait!
       new_state = @state.clone
-      if instance_of_id.send(:"#{overall_action}_complete?", @state)
+      success = instance_of_id.send(:"#{overall_action}_complete?", @state)
+      if success
         new_state.no_longer_waiting(id)
         new_state.replace(id) if overall_action == :delete
       end
-      new_state
+      [new_state, success]
     end
   end
 end

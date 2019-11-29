@@ -3,10 +3,10 @@
 module Tataru
   # The state of the environment
   class State
-    def initialize
-      @current_ids = {}
-      @replacer_ids = {}
-      @waiting_ids = {}
+    def initialize(objstate = {})
+      @current_ids = objstate[:current_ids] || {}
+      @replacer_ids = objstate[:replacer_ids] || {}
+      @waiting_ids = objstate[:waiting_ids] || {}
     end
 
     def putstate(id, state, value, replacer: false)

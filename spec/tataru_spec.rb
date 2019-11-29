@@ -273,7 +273,7 @@ RSpec.describe Tataru do
         instruction1 = plan.instructions[0]
 
         step1 = Tataru::ExecutionStep.new(state, instruction1)
-        new_state = step1.execute
+        new_state, success = step1.execute
         expect(new_state.waiting_list).to match({ 'mycode' => :create })
         expect(new_state.getstate('mycode', :digit_count)).to eq 6
 
@@ -284,7 +284,7 @@ RSpec.describe Tataru do
         )
 
         step2 = Tataru::ExecutionStep.new(state, instruction2)
-        new_state = step2.execute
+        new_state, success = step2.execute
         expect(new_state.waiting_list).to match({ 'mycode' => :create })
         expect(new_state.getstate('mycode', :digit_count)).to eq 6
 
@@ -293,7 +293,7 @@ RSpec.describe Tataru do
         )
 
         step3 = Tataru::ExecutionStep.new(state, instruction2)
-        new_state = step3.execute
+        new_state, success = step3.execute
         expect(new_state.waiting_list).to be_empty
         expect(new_state.getstate('mycode', :digit_count)).to eq 6
       end
@@ -354,7 +354,7 @@ RSpec.describe Tataru do
         instruction1 = plan.instructions[0]
 
         step1 = Tataru::ExecutionStep.new(state, instruction1)
-        new_state = step1.execute
+        new_state, success = step1.execute
         expect(new_state.waiting_list).to match({ 'mycode' => :create })
         expect(new_state.getstate('mycode', :digit_count)).to eq 7
         expect(new_state.getstate('mycode', :digit_count, replacer: true)).to eq 6
@@ -366,7 +366,7 @@ RSpec.describe Tataru do
         )
 
         step2 = Tataru::ExecutionStep.new(state, instruction2)
-        new_state = step2.execute
+        new_state, success = step2.execute
         expect(new_state.waiting_list).to match({ 'mycode' => :create })
         expect(new_state.getstate('mycode', :digit_count)).to eq 7
         expect(new_state.getstate('mycode', :digit_count, replacer: true)).to eq 6
@@ -376,7 +376,7 @@ RSpec.describe Tataru do
         )
 
         step3 = Tataru::ExecutionStep.new(state, instruction2)
-        new_state = step3.execute
+        new_state, success = step3.execute
         expect(new_state.waiting_list).to be_empty
         expect(new_state.getstate('mycode', :digit_count)).to eq 7
         expect(new_state.getstate('mycode', :digit_count, replacer: true)).to eq 6
@@ -385,7 +385,7 @@ RSpec.describe Tataru do
         instruction3 = plan.instructions[2]
 
         step4 = Tataru::ExecutionStep.new(state, instruction3)
-        new_state = step4.execute
+        new_state, success = step4.execute
         expect(new_state.waiting_list).to match({ 'mycode' => :delete })
         expect(new_state.getstate('mycode', :digit_count)).to eq 7
         expect(new_state.getstate('mycode', :digit_count, replacer: true)).to eq 6
@@ -397,7 +397,7 @@ RSpec.describe Tataru do
         )
 
         step5 = Tataru::ExecutionStep.new(state, instruction4)
-        new_state = step5.execute
+        new_state, success = step5.execute
         expect(new_state.waiting_list).to match({ 'mycode' => :delete })
         expect(new_state.getstate('mycode', :digit_count)).to eq 7
         expect(new_state.getstate('mycode', :digit_count, replacer: true)).to eq 6
@@ -407,7 +407,7 @@ RSpec.describe Tataru do
         )
 
         step6 = Tataru::ExecutionStep.new(state, instruction4)
-        new_state = step6.execute
+        new_state, success = step6.execute
         expect(new_state.waiting_list).to be_empty
         expect(new_state.getstate('mycode', :digit_count)).to eq 6
         expect(new_state.getstate('mycode', :digit_count, replacer: true)).to eq nil
