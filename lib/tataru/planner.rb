@@ -1,12 +1,19 @@
 # frozen_string_literal: true
 
 module Tataru
+  module Rage
+    # not valid
+    class InvalidRequirement < StandardError; end
+  end
+
   # A plan
   class Planner
     def initialize(current_state, requirement)
       @current_state = current_state
       @requirement = requirement
       @actions = {}
+
+      raise Rage::InvalidRequirement unless requirement.valid?
     end
 
     def order
@@ -46,7 +53,7 @@ module Tataru
 
     def generate_delete_instructions
       delete_actions = []
-      order.each do |step|
+      order.reverse.each do |step|
         step.each do |id|
           delete_action = generate_delete_instruction_for(id)
           delete_actions << delete_action unless delete_action.nil?

@@ -18,13 +18,16 @@ module Tataru
       rclass = @resource_finder.resource_named(type)
       res = ResourceDSL.new(rclass.new)
       res.instance_exec(&block) if block
-      resource_list[name] = {
-        type: type,
-        dependencies: [],
-        state: res.fields
+      @resource_list[name] = {
+        type: type, dependencies: [],
+        state: res.fields, errors: res.errors
       }
     rescue NameError
       super
+    end
+
+    def errors
+      @resource_list.flat_map { |_, v| v[:errors] }
     end
   end
 end

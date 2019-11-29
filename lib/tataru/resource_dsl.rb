@@ -21,5 +21,11 @@ module Tataru
         super
       end
     end
+
+    def errors
+      (@resource_inst.states - @fields.keys).map do |x|
+        { missing_state: x }
+      end
+    end
   end
 end

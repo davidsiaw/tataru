@@ -3,11 +3,12 @@
 module Tataru
   # Requirements list
   class Requirements
-    attr_reader :resource_finder
+    attr_reader :resource_finder, :errors
 
     def initialize(resource_finder = DefaultResourceFinder.new, &block)
       dsl = RequirementsDSL.new(resource_finder)
       dsl.instance_exec(&block)
+      @errors = dsl.errors
       @reqs = dsl.resource_list
       @resource_finder = resource_finder
     end
@@ -32,6 +33,10 @@ module Tataru
 
     def type(id)
       @reqs[id][:type]
+    end
+
+    def valid?
+      errors.length.zero?
     end
 
     def compare(id, current_state)
