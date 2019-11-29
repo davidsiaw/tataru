@@ -1,8 +1,14 @@
 # frozen_string_literal: true
 
-require 'tataru/version'
+require 'active_support/inflector'
+require 'bunny/tsort'
 
-module Tataru
-  class Error < StandardError; end
-  # Your code goes here...
-end
+require 'tataru/version'
+require 'tataru/resource'
+require 'tataru/state'
+require 'tataru/instruction'
+require 'tataru/planner'
+require 'tataru/default_resource_finder'
+require 'tataru/requirements_dsl'
+require 'tataru/resource_dsl'
+require 'tataru/requirements'
