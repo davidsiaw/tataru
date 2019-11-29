@@ -37,20 +37,28 @@ RSpec.describe Tataru do
     context 'given empty state' do
       let(:state) { Tataru::State.new }
 
-      it 'has 2 instructions' do
+      it 'has 4 instructions' do
         plan = Tataru::Planner.new(state, req)
-        expect(plan.instructions.length).to eq 2
+        expect(plan.instructions.length).to eq 4
       end
 
       it 'has correct instructions' do
         plan = Tataru::Planner.new(state, req)
-        expect(plan.instructions[0].action).to eq :create
+        expect(plan.instructions[0].action).to eq :begin_create
         expect(plan.instructions[0].id).to eq 'mycode'
         expect(plan.instructions[0].state).to eq(digit_count: 6)
 
-        expect(plan.instructions[1].action).to eq :create
-        expect(plan.instructions[1].id).to eq 'afile'
-        expect(plan.instructions[1].state[:contents].class).to eq Tataru::DoLater::MemberCallPlaceholder
+        expect(plan.instructions[1].action).to eq :wait_create
+        expect(plan.instructions[1].id).to eq 'mycode'
+        expect(plan.instructions[1].state).to eq(digit_count: 6)
+
+        expect(plan.instructions[2].action).to eq :begin_create
+        expect(plan.instructions[2].id).to eq 'afile'
+        expect(plan.instructions[2].state[:contents].class).to eq Tataru::DoLater::MemberCallPlaceholder
+        
+        expect(plan.instructions[3].action).to eq :wait_create
+        expect(plan.instructions[3].id).to eq 'afile'
+        expect(plan.instructions[3].state[:contents].class).to eq Tataru::DoLater::MemberCallPlaceholder
       end
     end
   end
@@ -70,20 +78,28 @@ RSpec.describe Tataru do
     context 'given empty state' do
       let(:state) { Tataru::State.new }
 
-      it 'has 2 instructions' do
+      it 'has 4 instructions' do
         plan = Tataru::Planner.new(state, req)
-        expect(plan.instructions.length).to eq 2
+        expect(plan.instructions.length).to eq 4
       end
 
       it 'has correct instructions' do
         plan = Tataru::Planner.new(state, req)
-        expect(plan.instructions[0].action).to eq :create
+        expect(plan.instructions[0].action).to eq :begin_create
         expect(plan.instructions[0].id).to eq 'mycode'
         expect(plan.instructions[0].state).to eq(digit_count: 6)
 
-        expect(plan.instructions[1].action).to eq :create
-        expect(plan.instructions[1].id).to eq 'afile'
-        expect(plan.instructions[1].state[:contents].class).to eq Tataru::DoLater::MemberCallPlaceholder
+        expect(plan.instructions[1].action).to eq :wait_create
+        expect(plan.instructions[1].id).to eq 'mycode'
+        expect(plan.instructions[1].state).to eq(digit_count: 6)
+
+        expect(plan.instructions[2].action).to eq :begin_create
+        expect(plan.instructions[2].id).to eq 'afile'
+        expect(plan.instructions[2].state[:contents].class).to eq Tataru::DoLater::MemberCallPlaceholder
+        
+        expect(plan.instructions[3].action).to eq :wait_create
+        expect(plan.instructions[3].id).to eq 'afile'
+        expect(plan.instructions[3].state[:contents].class).to eq Tataru::DoLater::MemberCallPlaceholder
       end
     end
   end
@@ -130,20 +146,28 @@ RSpec.describe Tataru do
         expect(plan.end_state.getstate('mycode2', :digit_count)).to eq 3
       end
 
-      it 'has 2 instructions' do
+      it 'has 4 instructions' do
         plan = Tataru::Planner.new(state, req)
-        expect(plan.instructions.length).to eq 2
+        expect(plan.instructions.length).to eq 4
       end
 
       it 'has correct instructions' do
         plan = Tataru::Planner.new(state, req)
-        expect(plan.instructions[0].action).to eq :create
+        expect(plan.instructions[0].action).to eq :begin_create
         expect(plan.instructions[0].id).to eq 'mycode1'
         expect(plan.instructions[0].state).to eq(digit_count: 6)
 
-        expect(plan.instructions[1].action).to eq :create
+        expect(plan.instructions[1].action).to eq :begin_create
         expect(plan.instructions[1].id).to eq 'mycode2'
         expect(plan.instructions[1].state).to eq(digit_count: 3)
+
+        expect(plan.instructions[2].action).to eq :wait_create
+        expect(plan.instructions[2].id).to eq 'mycode1'
+        expect(plan.instructions[2].state).to eq(digit_count: 6)
+
+        expect(plan.instructions[3].action).to eq :wait_create
+        expect(plan.instructions[3].id).to eq 'mycode2'
+        expect(plan.instructions[3].state).to eq(digit_count: 3)
       end
     end
 
@@ -155,20 +179,28 @@ RSpec.describe Tataru do
         state.putstate('mycode2', :digit_count, 6)
       end
 
-      it 'has 2 instructions' do
+      it 'has 4 instructions' do
         plan = Tataru::Planner.new(state, req)
-        expect(plan.instructions.length).to eq 2
+        expect(plan.instructions.length).to eq 4
       end
 
       it 'has correct instructions' do
         plan = Tataru::Planner.new(state, req)
-        expect(plan.instructions[0].action).to eq :create
+        expect(plan.instructions[0].action).to eq :begin_create
         expect(plan.instructions[0].id).to eq 'mycode2'
         expect(plan.instructions[0].state).to eq(digit_count: 3)
 
-        expect(plan.instructions[1].action).to eq :delete
+        expect(plan.instructions[1].action).to eq :wait_create
         expect(plan.instructions[1].id).to eq 'mycode2'
-        expect(plan.instructions[1].state).to eq(digit_count: 6)
+        expect(plan.instructions[1].state).to eq(digit_count: 3)
+
+        expect(plan.instructions[2].action).to eq :begin_delete
+        expect(plan.instructions[2].id).to eq 'mycode2'
+        expect(plan.instructions[2].state).to eq(digit_count: 6)
+
+        expect(plan.instructions[3].action).to eq :wait_delete
+        expect(plan.instructions[3].id).to eq 'mycode2'
+        expect(plan.instructions[3].state).to eq(digit_count: 6)
       end
     end
   end
@@ -201,7 +233,7 @@ RSpec.describe Tataru do
 
       it 'has correct instructions' do
         plan = Tataru::Planner.new(state, req)
-        expect(plan.instructions[0].action).to eq :delete
+        expect(plan.instructions[0].action).to eq :begin_delete
         expect(plan.instructions[0].id).to eq 'mycode'
         expect(plan.instructions[0].state).to eq(digit_count: 7)
       end
@@ -226,9 +258,44 @@ RSpec.describe Tataru do
 
       it 'has correct instructions' do
         plan = Tataru::Planner.new(state, req)
-        expect(plan.instructions[0].action).to eq :create
+        expect(plan.instructions[0].action).to eq :begin_create
         expect(plan.instructions[0].id).to eq 'mycode'
         expect(plan.instructions[0].state).to eq(digit_count: 6)
+
+        expect(plan.instructions[1].action).to eq :wait_create
+        expect(plan.instructions[1].id).to eq 'mycode'
+        expect(plan.instructions[1].state).to eq(digit_count: 6)
+      end
+
+      it 'agrees with execution step' do
+        plan = Tataru::Planner.new(state, req)
+
+        instruction1 = plan.instructions[0]
+
+        step1 = Tataru::ExecutionStep.new(state, instruction1)
+        new_state = step1.execute
+        expect(new_state.waiting_list).to match({ 'mycode' => :create })
+        expect(new_state.getstate('mycode', :digit_count)).to eq 6
+
+        instruction2 = plan.instructions[1]
+
+        allow_any_instance_of(Tataru::Resources::RandomCodeResource).to(
+          receive(:create_complete?) { false }
+        )
+
+        step2 = Tataru::ExecutionStep.new(state, instruction2)
+        new_state = step2.execute
+        expect(new_state.waiting_list).to match({ 'mycode' => :create })
+        expect(new_state.getstate('mycode', :digit_count)).to eq 6
+
+        allow_any_instance_of(Tataru::Resources::RandomCodeResource).to(
+          receive(:create_complete?) { true }
+        )
+
+        step3 = Tataru::ExecutionStep.new(state, instruction2)
+        new_state = step3.execute
+        expect(new_state.waiting_list).to be_empty
+        expect(new_state.getstate('mycode', :digit_count)).to eq 6
       end
     end
 
@@ -257,20 +324,95 @@ RSpec.describe Tataru do
         expect(plan.end_state.getstate('mycode', :digit_count)).to eq 6
       end
 
-      it 'has 2 instructions' do
+      it 'has 4 instructions' do
         plan = Tataru::Planner.new(state, req)
-        expect(plan.instructions.length).to eq 2
+        expect(plan.instructions.length).to eq 4
       end
 
       it 'has correct instructions' do
         plan = Tataru::Planner.new(state, req)
-        expect(plan.instructions[0].action).to eq :create
+        expect(plan.instructions[0].action).to eq :begin_create
         expect(plan.instructions[0].id).to eq 'mycode'
         expect(plan.instructions[0].state).to eq(digit_count: 6)
 
-        expect(plan.instructions[1].action).to eq :delete
+        expect(plan.instructions[1].action).to eq :wait_create
         expect(plan.instructions[1].id).to eq 'mycode'
-        expect(plan.instructions[1].state).to eq(digit_count: 7)
+        expect(plan.instructions[1].state).to eq(digit_count: 6)
+
+        expect(plan.instructions[2].action).to eq :begin_delete
+        expect(plan.instructions[2].id).to eq 'mycode'
+        expect(plan.instructions[2].state).to eq(digit_count: 7)
+
+        expect(plan.instructions[3].action).to eq :wait_delete
+        expect(plan.instructions[3].id).to eq 'mycode'
+        expect(plan.instructions[3].state).to eq(digit_count: 7)
+      end
+
+      it 'agrees with execution step' do
+        plan = Tataru::Planner.new(state, req)
+
+        instruction1 = plan.instructions[0]
+
+        step1 = Tataru::ExecutionStep.new(state, instruction1)
+        new_state = step1.execute
+        expect(new_state.waiting_list).to match({ 'mycode' => :create })
+        expect(new_state.getstate('mycode', :digit_count)).to eq 7
+        expect(new_state.getstate('mycode', :digit_count, replacer: true)).to eq 6
+
+        instruction2 = plan.instructions[1]
+
+        allow_any_instance_of(Tataru::Resources::RandomCodeResource).to(
+          receive(:create_complete?) { false }
+        )
+
+        step2 = Tataru::ExecutionStep.new(state, instruction2)
+        new_state = step2.execute
+        expect(new_state.waiting_list).to match({ 'mycode' => :create })
+        expect(new_state.getstate('mycode', :digit_count)).to eq 7
+        expect(new_state.getstate('mycode', :digit_count, replacer: true)).to eq 6
+
+        allow_any_instance_of(Tataru::Resources::RandomCodeResource).to(
+          receive(:create_complete?) { true }
+        )
+
+        step3 = Tataru::ExecutionStep.new(state, instruction2)
+        new_state = step3.execute
+        expect(new_state.waiting_list).to be_empty
+        expect(new_state.getstate('mycode', :digit_count)).to eq 7
+        expect(new_state.getstate('mycode', :digit_count, replacer: true)).to eq 6
+
+
+        instruction3 = plan.instructions[2]
+
+        step4 = Tataru::ExecutionStep.new(state, instruction3)
+        new_state = step4.execute
+        expect(new_state.waiting_list).to match({ 'mycode' => :delete })
+        expect(new_state.getstate('mycode', :digit_count)).to eq 7
+        expect(new_state.getstate('mycode', :digit_count, replacer: true)).to eq 6
+
+        instruction4 = plan.instructions[3]
+
+        allow_any_instance_of(Tataru::Resources::RandomCodeResource).to(
+          receive(:delete_complete?) { false }
+        )
+
+        step5 = Tataru::ExecutionStep.new(state, instruction4)
+        new_state = step5.execute
+        expect(new_state.waiting_list).to match({ 'mycode' => :delete })
+        expect(new_state.getstate('mycode', :digit_count)).to eq 7
+        expect(new_state.getstate('mycode', :digit_count, replacer: true)).to eq 6
+
+        allow_any_instance_of(Tataru::Resources::RandomCodeResource).to(
+          receive(:delete_complete?) { true }
+        )
+
+        step6 = Tataru::ExecutionStep.new(state, instruction4)
+        new_state = step6.execute
+        expect(new_state.waiting_list).to be_empty
+        expect(new_state.getstate('mycode', :digit_count)).to eq 6
+        expect(new_state.getstate('mycode', :digit_count, replacer: true)).to eq nil
+
+        expect(plan.end_state.to_h).to match new_state.to_h
       end
     end
   end

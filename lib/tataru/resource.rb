@@ -31,11 +31,16 @@ module Tataru
       list_props(:output)
     end
 
-    def create; end
-
-    def update; end
-
-    def delete; end
+    %i[
+      begin_create
+      begin_update
+      begin_delete
+      create_complete?
+      update_complete?
+      delete_complete?
+    ].each do |thing|
+      define_method(thing) { |_state| }
+    end
 
     private
 

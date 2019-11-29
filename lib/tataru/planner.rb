@@ -6,6 +6,7 @@ module Tataru
     class InvalidRequirement < StandardError; end
   end
 
+
   # A plan
   class Planner
     def initialize(current_state, requirement)
@@ -20,24 +21,24 @@ module Tataru
       Bunny::Tsort.tsort(@requirement.dep_tree)
     end
 
-    def delete_instruction_for(id)
-      Instruction.new(:delete, id, @current_state[id])
+    def delete_instruction_for(id, pref)
+      Instruction.new(:"#{pref}_delete", id, @current_state[id], @requirement)
     end
 
-    def generate_delete_instruction_for(id)
+    def generate_delete_instruction_for(id, pref)
       return if @current_state[id].nil?
       return unless action(id) == :replace
 
-      delete_instruction_for(id)
+      delete_instruction_for(id, pref)
     end
 
-    def generate_instruction_for(id)
+    def generate_instruction_for(id, pref)
       if @current_state[id].nil?
-        Instruction.new(:create, id, end_state[id])
+        Instruction.new(:"#{pref}_create", id, end_state[id], @requirement)
       elsif action(id) == :replace
-        Instruction.new(:create, id, end_state[id])
+        Instruction.new(:"#{pref}_create", id, end_state[id], @requirement)
       elsif action(id) == :update
-        Instruction.new(:update, id, end_state[id])
+        Instruction.new(:"#{pref}_update", id, end_state[id], @requirement)
       end
     end
 
@@ -46,7 +47,7 @@ module Tataru
       @current_state.id_list.keys.each do |id|
         next if @requirement.exist? id
 
-        remove_actions << delete_instruction_for(id)
+        remove_actions << delete_instruction_for(id, :begin)
       end
       remove_actions
     end
@@ -54,9 +55,11 @@ module Tataru
     def generate_delete_instructions
       delete_actions = []
       order.reverse.each do |step|
-        step.each do |id|
-          delete_action = generate_delete_instruction_for(id)
-          delete_actions << delete_action unless delete_action.nil?
+        %i[begin wait].each do |substep|
+          step.each do |id|
+            delete_action = generate_delete_instruction_for(id, substep)
+            delete_actions << delete_action unless delete_action.nil?
+          end
         end
       end
       delete_actions + generate_removal_instructions
@@ -65,9 +68,11 @@ module Tataru
     def generate_instructions
       instr = []
       order.each do |step|
-        step.each do |id|
-          instruction = generate_instruction_for(id)
-          instr << instruction unless instruction.nil?
+        %i[begin wait].each do |substep|
+          step.each do |id|
+            instruction = generate_instruction_for(id, substep)
+            instr << instruction unless instruction.nil?
+          end
         end
       end
       instr + generate_delete_instructions
