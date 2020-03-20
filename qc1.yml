@@ -1,0 +1,9 @@
+types:
+  afile: file
+objects:
+  afile:
+    name: abc.txt
+    contents: things
+quest:
+  - create: afile
+  - wait_for_create: afile
