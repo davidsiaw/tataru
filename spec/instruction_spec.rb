@@ -4,7 +4,6 @@ require 'tataru'
 
 describe Instruction do
   it 'can be made' do
-    i = Instruction.new('asd')
-    p i
+    Instruction.new
   end
 end

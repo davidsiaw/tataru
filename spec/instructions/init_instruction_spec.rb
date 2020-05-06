@@ -1,0 +1,15 @@
+# frozen_string_literal: true
+
+require 'tataru'
+
+describe InitInstruction do
+  it 'sets hashes' do
+    instr = InitInstruction.new
+    mem = Memory.new
+    instr.run(mem)
+    expect(mem.hash.key? :remote_ids).to eq true
+    expect(mem.hash.key? :outputs).to eq true
+    expect(mem.hash.key? :errors).to eq true
+    expect(mem.hash.key? :deleted).to eq true
+  end
+end
