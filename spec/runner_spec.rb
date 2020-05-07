@@ -29,6 +29,17 @@ describe Runner do
     expect(runner).to be_ended
   end
 
+  it 'sets memory error if instruction throws' do
+    inst1 = Instruction.new
+    allow(inst1).to receive(:run) { raise 'hello' }
+
+    runner = Runner.new([inst1])
+    runner.run_next
+
+    expect(runner).to be_ended
+    expect(runner.memory.error).to be_a RuntimeError
+  end
+
   it 'runs instructions in order' do
     inst1 = Instruction.new
     inst2 = Instruction.new

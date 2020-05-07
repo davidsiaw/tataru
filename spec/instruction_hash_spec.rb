@@ -6,7 +6,7 @@ describe InstructionHash do
   it 'can be made' do
     im = InstructionHash.new(init: {})
 
-    expect(im.instruction_list[0]).to be_a(InitInstruction)
+    expect(im.instruction_list).to be_empty
   end
 
   it 'makes init properly' do
@@ -14,7 +14,7 @@ describe InstructionHash do
       remote_ids: {
         'thing' => 'abc'
       }
-    })
+    }, instructions: [:init])
 
     expect(im.instruction_list[0]).to be_a(InitInstruction)
     expect(im.instruction_list[0].remote_ids).to eq('thing' => 'abc')
@@ -27,7 +27,7 @@ describe InstructionHash do
 
     expect(CreateInstruction).to receive(:new).and_call_original
 
-    expect(im.instruction_list[1]).to be_a(CreateInstruction)
+    expect(im.instruction_list[0]).to be_a(CreateInstruction)
   end
 
   it 'add more instructions' do
@@ -39,8 +39,8 @@ describe InstructionHash do
     expect(CreateInstruction).to receive(:new).and_call_original
     expect(DeleteInstruction).to receive(:new).and_call_original
 
-    expect(im.instruction_list[1]).to be_a(CreateInstruction)
-    expect(im.instruction_list[2]).to be_a(DeleteInstruction)
+    expect(im.instruction_list[0]).to be_a(CreateInstruction)
+    expect(im.instruction_list[1]).to be_a(DeleteInstruction)
   end
 
   it 'adds immediate mode instructions' do
@@ -50,7 +50,7 @@ describe InstructionHash do
 
     expect(KeyInstruction).to receive(:new).with('name').and_call_original
 
-    expect(im.instruction_list[1]).to be_a(KeyInstruction)
+    expect(im.instruction_list[0]).to be_a(KeyInstruction)
   end
 
   it 'errors on unknown instruction' do

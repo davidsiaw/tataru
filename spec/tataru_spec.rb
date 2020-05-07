@@ -118,6 +118,10 @@ class TestFileResourceDesc < BaseResourceDesc
     [:name]
   end
 
+  def required_fields
+    [:name]
+  end
+
   def output_fields
     [:created_at, :updated_at]
   end
@@ -162,6 +166,10 @@ class StringJoinerResourceDesc < BaseResourceDesc
     [:result]
   end
 
+  def required_fields
+    [:strings]
+  end
+
   def needs_remote_id?
     true
   end
@@ -177,9 +185,20 @@ describe Tataru do
     rtp.add_resource_desc(:file, TestFileResourceDesc)
     ttr = Tataru.new(rtp)
     ttr.construct do
-      resource :file, 'something1.txt'
+      resource :file, 'file' do
+        name 'something1.txt'
+        contents '123'
+      end
     end
-
+    ih = InstructionHash.new(ttr.instr_hash)
+    runner = Runner.new(ih.instruction_list)
+    loop do
+      runner.run_next
+      break if runner.ended?
+    end
+    expect(TestEnvironment.instance.file('something1.txt')).to include(
+      contents: '123'
+    )
   end
 
   it 'builds' do
@@ -190,11 +209,13 @@ describe Tataru do
 
     ttr = Tataru.new(rtp)
     ttr.construct do
-      r1 = resource :file, 'something1.txt' do
+      r1 = resource :file, 'f1' do
+        name 'something1.txt'
         contents 'meow'
       end
 
-      r2 = resource :file, 'something2.txt' do
+      r2 = resource :file, 'f2' do
+        name 'something2.txt'
         contents 'meow'
       end
 
@@ -202,10 +223,10 @@ describe Tataru do
         strings [r1.created_at, r2.created_at]
       end
 
-      resource :file, 'creationdates.txt' do
+      resource :file, 'cdates' do
+        name 'creationdates.txt'
         contents sj.result
       end
     end
-    puts ttr.instr_hash.to_yaml
   end
 end

@@ -68,6 +68,10 @@ class BaseResourceDesc
     [] # fields that cannot be passed in to create or update
   end
 
+  def required_fields
+    [] # mutable or immutable fields that cannot be omitted
+  end
+
   def needs_remote_id?
     false # true if resource requires a remote id
   end
@@ -187,6 +191,15 @@ class ResourceRepresentation < Representation
     @name = name
     @properties = properties
     @desc = desc
+    check_required_fields!
+  end
+
+  def check_required_fields!
+    @desc.required_fields.each do |field|
+      next if @properties.key? field
+
+      raise "Required field '#{field}' not provided in '#{@name}'"
+    end
   end
 
   def respond_to_missing?(name, *_args)
@@ -344,6 +357,7 @@ class Compiler
     @labels = {}
     @init_hash = generate_init_hash
 
+    @instructions << :init
     generate_instructions!
     @instructions << :end
 
@@ -468,10 +482,7 @@ class InstructionHash
   end
 
   def instruction_list
-    @instruction_list ||= [
-      init_instruction,
-      *instructions
-    ]
+    @instruction_list ||= instructions
   end
 
   def to_h
@@ -482,7 +493,9 @@ class InstructionHash
     return [] unless @thehash[:instructions]
 
     @thehash[:instructions].map do |action|
-      if action.is_a? Hash
+      if action == :init
+        init_instruction
+      elsif action.is_a? Hash
         # immediate mode instruction
         instruction_for(action.keys[0]).new(action.values[0])
       else
@@ -503,7 +516,7 @@ class InstructionHash
 
     inithash = @thehash[:init]
     if inithash
-      %i[remote_ids outputs errors deleted].each do |member|
+      %i[remote_ids outputs errors deleted rom labels].each do |member|
         init.send(:"#{member}=", inithash[member]) if inithash.key? member
       end
     end
@@ -546,13 +559,14 @@ end
 
 # instruction to initialize the memory
 class InitInstruction < Instruction
-  attr_accessor :remote_ids, :outputs, :errors, :rom, :deleted
+  attr_accessor :remote_ids, :outputs, :errors, :rom, :labels, :deleted
 
   def initialize
     @remote_ids = {}
     @outputs = {}
     @errors = {}
     @rom = {}
+    @labels = {}
     @deleted = []
   end
 
@@ -560,6 +574,7 @@ class InitInstruction < Instruction
     memory.hash[:remote_ids] = @remote_ids
     memory.hash[:outputs] = @outputs
     memory.hash[:errors] = @errors
+    memory.hash[:labels] = @labels
     memory.hash[:rom] = @rom.freeze
     memory.hash[:deleted] = @deleted
   end
@@ -837,8 +852,8 @@ class Runner
     @instruction_list[@memory.program_counter].execute(@memory)
     @memory.program_counter += 1
   rescue RuntimeError => e
-    @error = e
+    @memory.error = e
   rescue StandardError => e
-    @error = e
+    @memory.error = e
   end
 end

@@ -12,7 +12,9 @@ describe Compiler do
         remote_ids: {},
         rom: {}
       },
-      instructions: [:end]
+      instructions: [:init, :end]
     )
   end
+
+  it 'outputs'
 end

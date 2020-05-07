@@ -20,6 +20,14 @@ describe ResourceRepresentation do
     expect(rr.created_at.output_field_name).to eq :created_at
   end
 
+  it 'throws error if required field not filled' do
+    desc = BaseResourceDesc.new
+    allow(desc).to receive(:immutable_fields) { [:filename] }
+    allow(desc).to receive(:required_fields) { [:filename] }
+
+    expect { rr = ResourceRepresentation.new('file', desc, {}) }.to raise_error "Required field 'filename' not provided in 'file'"
+  end
+
   it 'throws error when no such output' do
     desc = BaseResourceDesc.new
     rr = ResourceRepresentation.new('file', desc, {})
