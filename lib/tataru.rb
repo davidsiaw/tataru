@@ -338,79 +338,53 @@ class Flattener
   end
 end
 
-# compiler
-class Compiler
+# a subroutine for handling a resource
+class SubroutineCompiler
+  def initialize(resource_representation, action)
+    @rrep = resource_representation
+    @action = action
+  end
+
+  def label
+    "#{@action}_#{@rrep.name}"
+  end
+
+  def body_instructions
+    [
+      :clear,
+      { key: :resource_name },
+      { value: @rrep.name },
+      { key: :resource_desc },
+      { value: @rrep.desc.class.name },
+      *extra_instructions,
+      @action,
+      :return
+    ]
+  end
+
+  def extra_instructions
+    key = :"#{@action}_extra_instructions"
+    return unless respond_to?(key)
+
+    send(key)
+  end
+
+  def create_extra_instructions
+    [
+      { key: :properties },
+      { value_rom: @rrep.name }
+    ]
+  end
+
+  def call_instruction
+    { call: label }
+  end
+end
+
+# compiles the inithash
+class InitHashCompiler
   def initialize(dsl)
     @dsl = dsl
-  end
-
-  def instr_hash
-    generate!
-    {
-      init: @init_hash,
-      instructions: @instructions
-    }
-  end
-
-  def generate!
-    @instructions = []
-    @labels = {}
-    @init_hash = generate_init_hash
-
-    @instructions << :init
-    generate_instructions!
-    @instructions << :end
-
-    generate_subroutines!
-  end
-
-  def generate_instructions!
-    order = Bunny::Tsort.tsort(@dsl.dep_graph)
-    order.each do |level|
-      checks = []
-      level.each do |item|
-        @instructions << { call: "create_#{item}" }
-        checks << { call: "check_create_#{item}" }
-      end
-      @instructions += checks
-    end
-  end
-
-  def generate_subroutines!
-    @dsl.resources.each do |name, rr|
-      idx = @instructions.count
-      @labels["create_#{name}"] = idx
-      @instructions += create_subroutine(rr)
-      idx = @instructions.count
-      @labels["check_create_#{name}"] = idx
-      @instructions += check_create_subroutine(rr)
-    end
-  end
-
-  def create_subroutine(representation)
-    [
-      :clear,
-      { key: :resource_name },
-      { value: representation.name },
-      { key: :resource_desc },
-      { value: representation.desc.class.name },
-      { key: :properties },
-      { value_rom: representation.name },
-      :create,
-      :return
-    ]
-  end
-
-  def check_create_subroutine(representation)
-    [
-      :clear,
-      { key: :resource_name },
-      { value: representation.name },
-      { key: :resource_desc },
-      { value: representation.desc.class.name },
-      :check_create,
-      :return
-    ]
   end
 
   def resolved_references(resource_name, references)
@@ -422,6 +396,9 @@ class Compiler
   def generate_init_hash
     rom = {}
     @dsl.resources.each do |k, v|
+      # Expand all the values used to a big flat hash that
+      # is only one level deep for ease of use, then mark
+      # them for the vm to use
       flattener = Flattener.new(v)
       flattener.flattened.each do |key, value|
         fixed = value.dup
@@ -433,9 +410,82 @@ class Compiler
     end
     {
       rom: rom,
-      remote_ids: {},
-      labels: @labels
+      remote_ids: {}
     }
+  end
+
+  def result
+    @result ||= generate_init_hash
+  end
+end
+
+# compiler
+class Compiler
+  def initialize(dsl)
+    @dsl = dsl
+  end
+
+  def instr_hash
+    {
+      init: {
+        **InitHashCompiler.new(@dsl).result,
+        labels: labels
+      },
+      instructions: top_instructions + subroutine_instructions
+    }
+  end
+
+  def labels
+    @labels ||= generate_labels
+  end
+
+  def subroutines
+    @subroutines ||= generate_subroutines
+  end
+
+  def top_instructions
+    @top_instructions ||= [
+      :init,
+      *generate_top_instructions,
+      :end
+    ]
+  end
+
+  def subroutine_instructions
+    @subroutine_instructions ||=
+      subroutines.values.flat_map(&:body_instructions)
+  end
+
+  def generate_labels
+    count = 0
+    subroutines.values.map do |sub|
+      arr = [sub.label, top_instructions.count + count]
+      count += sub.body_instructions.count
+      arr
+    end.to_h
+  end
+
+  def generate_subroutines
+    result = {}
+    @dsl.resources.each do |k, v|
+      result[k.to_s] = SubroutineCompiler.new(v, :create)
+      result["#{k}_check"] = SubroutineCompiler.new(v, :check_create)
+    end
+    result
+  end
+
+  def generate_top_instructions
+    order = Bunny::Tsort.tsort(@dsl.dep_graph)
+    instructions = []
+    order.each do |level|
+      checks = []
+      level.each do |item|
+        instructions << subroutines[item.to_s].call_instruction
+        checks << subroutines["#{item}_check"].call_instruction
+      end
+      instructions += checks
+    end
+    instructions
   end
 end
 
@@ -633,12 +683,18 @@ class CheckCreateInstruction < CheckInstruction
   end
 
   def after_complete
+    memory.hash[:outputs][resource_name] = outputs
+  end
+
+  def outputs
+    return {} unless desc.output_fields.count
+
     resource_class = desc.resource_class
     resource = resource_class.new(memory.hash[:remote_ids][resource_name])
+    o = resource.outputs
+    raise "Output for '#{resource_name}' is not a hash" unless o.is_a? Hash
 
-    return unless desc.output_fields.count
-
-    memory.hash[:outputs][resource_name] = resource.outputs
+    resource.outputs
   end
 end
 
@@ -695,12 +751,18 @@ class CheckUpdateInstruction < CheckInstruction
   end
 
   def after_complete
+    memory.hash[:outputs][resource_name] = outputs
+  end
+
+  def outputs
+    return {} unless desc.output_fields.count
+
     resource_class = desc.resource_class
     resource = resource_class.new(memory.hash[:remote_ids][resource_name])
+    o = resource.outputs
+    raise "Output for '#{resource_name}' is not a hash" unless o.is_a? Hash
 
-    return unless desc.output_fields.count
-
-    memory.hash[:outputs][resource_name] = resource.outputs
+    resource.outputs
   end
 end
 

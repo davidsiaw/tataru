@@ -204,6 +204,7 @@ describe Tataru do
       runner.run_next
       break if runner.ended?
     end
+    expect(runner.memory.error).to be_nil
     expect(TestEnvironment.instance.file('something1.txt')).to include(
       contents: '123'
     )
@@ -240,11 +241,14 @@ describe Tataru do
     end
     ih = InstructionHash.new(ttr.instr_hash)
     runner = Runner.new(ih.instruction_list)
-    loop do
-      runner.run_next
-      break if runner.ended?
+
+    #puts ttr.instr_hash.to_yaml
+    travel_to Time.new(2012, 1, 1) do
+      loop do
+        runner.run_next
+        break if runner.ended?
+      end
     end
-    binding.pry
     expect(runner.memory.error).to be_nil
 
     expect(TestEnvironment.instance.file('something1.txt')).to include(
@@ -252,6 +256,9 @@ describe Tataru do
     )
     expect(TestEnvironment.instance.file('something2.txt')).to include(
       contents: 'woof'
+    )
+    expect(TestEnvironment.instance.file('creationdates.txt')).to include(
+      contents: "2012-01-01 00:00:00 +0900\n2012-01-01 00:00:00 +0900"
     )
     expect(runner.memory.hash[:remote_ids]['f1']).to eq 'something1.txt'
     expect(runner.memory.hash[:remote_ids]['f2']).to eq 'something2.txt'
