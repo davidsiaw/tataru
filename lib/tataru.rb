@@ -98,7 +98,7 @@ class Resolver
                         when OutputRepresentation
                           @expression
                         else
-                          raise 'invalid value.'
+                          raise "invalid value: #{@expression.inspect}"
                         end
   end
 
@@ -117,7 +117,7 @@ class ResourceDsl
     @dependencies = Set.new
   end
 
-  def respond_to_missing?(name)
+  def respond_to_missing?(name, *_args)
     true if @fields.include? name
   end
 
@@ -153,25 +153,35 @@ end
 
 # representing arrays
 class ArrayRepresentation < Representation
+  def initialize(value)
+    @value = value.map do |thing|
+      Resolver.new(thing).representation
+    end.to_a
+  end
+
   def dependencies
-    @dependencies ||= @value.flat_map do |value|
-      Resolver.new(value).dependencies
-    end
+    @dependencies ||= @value.flat_map(&:dependencies)
   end
 end
 
 # representing hashes
 class HashRepresentation < Representation
+  def initialize(value)
+    @value = value.map do |key, thing|
+      [key, Resolver.new(thing).representation]
+    end.to_h
+  end
+
   def dependencies
-    @dependencies ||= @value.flat_map do |_key, value|
-      Resolver.new(value).dependencies
+    @dependencies ||= @value.flat_map do |_key, rep|
+      rep.dependencies
     end
   end
 end
 
 # internal representation of resources
 class ResourceRepresentation < Representation
-  attr_reader :properties
+  attr_reader :name, :properties, :desc
 
   def initialize(name, desc, properties)
     @name = name
@@ -179,7 +189,7 @@ class ResourceRepresentation < Representation
     @desc = desc
   end
 
-  def respond_to_missing?(name)
+  def respond_to_missing?(name, *_args)
     true if @desc.output_fields.include? name
   end
 
@@ -240,6 +250,181 @@ class TopDsl
   end
 end
 
+# flattens properties to make them digestable
+class Flattener
+  def initialize(value)
+    @value = value
+    @result = {}
+  end
+
+  def flattened
+    flatten(@value, :top)
+    @result
+  end
+
+  def flatten(value, name)
+    type = value.class.name.sub(/Representation$/, '').downcase
+    method_name = :"flatten_#{type}"
+    raise "cannot flatten #{value.inspect}" unless respond_to?(method_name)
+
+    send(method_name, value, name)
+  end
+
+  def flatten_literal(value, name)
+    @result[name] = {
+      type: :literal,
+      value: value.value
+    }
+  end
+
+  def flatten_array(value, name)
+    refs = {}
+    value.value.each_with_index do |val, i|
+      key = :"#{name}_#{i}"
+      flatten(val, key)
+      refs[i] = key
+    end
+    @result[name] = {
+      type: :array,
+      references: refs
+    }
+  end
+
+  def flatten_hash(value, name)
+    refs = {}
+    value.value.each do |k, v|
+      key = :"#{name}_#{k}"
+      flatten(v, key)
+      refs[k] = key
+    end
+    @result[name] = {
+      type: :hash,
+      references: refs
+    }
+  end
+
+  def flatten_resource(value, name)
+    refs = {}
+    value.properties.each do |k, v|
+      key = :"#{name}_#{k}"
+      flatten(v, key)
+      refs[k] = key
+    end
+    @result[name] = {
+      type: :hash,
+      references: refs
+    }
+  end
+
+  def flatten_output(value, name)
+    @result[name] = {
+      type: :output,
+      resource: value.resource_name,
+      output: value.output_field_name
+    }
+  end
+end
+
+# compiler
+class Compiler
+  def initialize(dsl)
+    @dsl = dsl
+  end
+
+  def instr_hash
+    generate!
+    {
+      init: @init_hash,
+      instructions: @instructions
+    }
+  end
+
+  def generate!
+    @instructions = []
+    @labels = {}
+    @init_hash = generate_init_hash
+
+    generate_instructions!
+    @instructions << :end
+
+    generate_subroutines!
+  end
+
+  def generate_instructions!
+    order = Bunny::Tsort.tsort(@dsl.dep_graph)
+    order.each do |level|
+      checks = []
+      level.each do |item|
+        @instructions << { call: "create_#{item}" }
+        checks << { call: "check_create_#{item}" }
+      end
+      @instructions += checks
+    end
+  end
+
+  def generate_subroutines!
+    @dsl.resources.each do |name, rr|
+      idx = @instructions.count
+      @labels["create_#{name}"] = idx
+      @instructions += create_subroutine(rr)
+      idx = @instructions.count
+      @labels["check_create_#{name}"] = idx
+      @instructions += check_create_subroutine(rr)
+    end
+  end
+
+  def create_subroutine(representation)
+    [
+      :clear,
+      { key: :resource_name },
+      { value: representation.name },
+      { key: :resource_desc },
+      { value: representation.desc.class.name },
+      { key: :properties },
+      { value_rom: representation.name },
+      :create,
+      :return
+    ]
+  end
+
+  def check_create_subroutine(representation)
+    [
+      :clear,
+      { key: :resource_name },
+      { value: representation.name },
+      { key: :resource_desc },
+      { value: representation.desc.class.name },
+      :check_create,
+      :return
+    ]
+  end
+
+  def resolved_references(resource_name, references)
+    references.map do |field, refname|
+      [field, refname.to_s.sub(/^top/, resource_name)]
+    end.to_h
+  end
+
+  def generate_init_hash
+    rom = {}
+    @dsl.resources.each do |k, v|
+      flattener = Flattener.new(v)
+      flattener.flattened.each do |key, value|
+        fixed = value.dup
+        if fixed[:references]
+          fixed[:references] = resolved_references(k, fixed[:references])
+        end
+        rom[key.to_s.sub(/^top/, k)] = fixed
+      end
+    end
+    {
+      rom: rom,
+      remote_ids: {},
+      labels: @labels
+    }
+  end
+end
+
 # tataru
 class Tataru
   def initialize(pool)
@@ -251,13 +436,9 @@ class Tataru
     @dsl.instance_eval(&block)
   end
 
-  def instructions
-    order = Bunny::Tsort.tsort(@dsl.dep_graph)
-    order.each do |level|
-      level.each do |item|
-        
-      end
-    end
+  def instr_hash
+    c = Compiler.new(@dsl)
+    c.instr_hash
   end
 end
 
@@ -282,18 +463,15 @@ end
 
 # representation of a set of instructions
 class InstructionHash
-  def initialize(resource_type_pool, thehash)
+  def initialize(thehash)
     @thehash = thehash
-    @resource_type_pool = resource_type_pool
   end
 
   def instruction_list
-    result = [
+    @instruction_list ||= [
       init_instruction,
       *instructions
     ]
-
-    result
   end
 
   def to_h
@@ -303,28 +481,21 @@ class InstructionHash
   def instructions
     return [] unless @thehash[:instructions]
 
-    @thehash[:instructions].map do |infohash|
-      next resource_instruction(infohash) if infohash[:type] == :resource
-
-      raise 'unknown instruction'
+    @thehash[:instructions].map do |action|
+      if action.is_a? Hash
+        # immediate mode instruction
+        instruction_for(action.keys[0]).new(action.values[0])
+      else
+        instruction_for(action).new
+      end
     end.to_a
   end
 
-  def resource_desc_for(resourcetype)
-    @resource_type_pool.resource_desc_for(resourcetype)
-  end
-
   def instruction_for(action)
-    Kernel.const_get("#{action}_instruction".camelize)
-  end
+    instr_const = "#{action}_instruction".camelize
+    raise 'unknown instruction' unless Kernel.const_defined? instr_const
 
-  def resource_instruction(infohash)
-    resourcetype = infohash[:resourcetype]
-    cls = instruction_for(infohash[:action])
-    desc = resource_desc_for(resourcetype)
-    args = [:new, infohash[:name], desc]
-    args << infohash[:args] if infohash.key? :args
-    cls.send(*args)
+    Kernel.const_get(instr_const)
   end
 
   def init_instruction
@@ -342,62 +513,95 @@ end
 
 # a thing to do
 class Instruction
-  def run(_memory); end
+  class << self
+    attr_accessor :expected_params
+
+    def expects(symbol)
+      @expected_params ||= []
+      @expected_params << symbol
+
+      define_method symbol do
+        return nil if @memory&.hash.nil?
+
+        memory.hash[:temp][symbol]
+      end
+    end
+  end
+
+  attr_accessor :memory
+
+  def execute(memory)
+    @memory = memory
+    self.class.expected_params&.each do |symbol|
+      unless memory.hash[:temp].key? symbol
+        raise "required param #{symbol} not found"
+      end
+    end
+
+    run
+  end
+
+  def run; end
 end
 
 # instruction to initialize the memory
 class InitInstruction < Instruction
-  attr_accessor :remote_ids, :outputs, :errors, :deleted
+  attr_accessor :remote_ids, :outputs, :errors, :rom, :deleted
 
   def initialize
     @remote_ids = {}
     @outputs = {}
     @errors = {}
+    @rom = {}
     @deleted = []
   end
 
-  def run(memory)
+  def run
     memory.hash[:remote_ids] = @remote_ids
     memory.hash[:outputs] = @outputs
     memory.hash[:errors] = @errors
+    memory.hash[:rom] = @rom.freeze
     memory.hash[:deleted] = @deleted
-    memory.hash[:temp] = {}
+  end
+end
+
+# instructions that deal with resources
+class ResourceInstruction < Instruction
+  expects :resource_name
+  expects :resource_desc
+
+  def desc
+    Kernel.const_get(resource_desc).new
   end
 end
 
 # instruction to create
-class CreateInstruction < Instruction
-  def initialize(resource_name, resource_desc, properties)
-    @resource_name = resource_name
-    @resource_desc = resource_desc
-    @properties = properties
-  end
+class CreateInstruction < ResourceInstruction
+  expects :properties
 
-  def run(memory)
-    resource_class = @resource_desc.resource_class
+  def run
+    resource_class = desc.resource_class
     resource = resource_class.new(nil)
-    resource.create(@properties)
+    resource.create(properties)
 
-    return unless @resource_desc.needs_remote_id?
+    return unless desc.needs_remote_id?
 
-    memory.hash[:remote_ids][@resource_name] = resource.remote_id
+    memory.hash[:remote_ids][resource_name] = resource.remote_id
   end
 end
 
 # General checking class
-class CheckInstruction < Instruction
-  def initialize(resource_name, resource_desc, check_type)
-    @resource_name = resource_name
-    @resource_desc = resource_desc
+class CheckInstruction < ResourceInstruction
+  def initialize(check_type)
     @check_type = check_type
   end
 
-  def run(memory)
-    resource_class = @resource_desc.resource_class
-    resource = resource_class.new(memory.hash[:remote_ids][@resource_name])
+  def run
+    resource_class = desc.resource_class
+    resource = resource_class.new(memory.hash[:remote_ids][resource_name])
 
     if resource.send(:"#{@check_type}_complete?")
-      after_complete(memory)
+      after_complete
     else
       # repeat this instruction until its done
       memory.program_counter -= 1
@@ -409,31 +613,24 @@ end
 
 # instruction to check create
 class CheckCreateInstruction < CheckInstruction
-  def initialize(resource_name, resource_desc)
-    @resource_name = resource_name
-    @resource_desc = resource_desc
-    super(resource_name, resource_desc, :create)
+  def initialize
+    super :create
   end
 
-  def after_complete(memory)
-    resource_class = @resource_desc.resource_class
-    resource = resource_class.new(memory.hash[:remote_ids][@resource_name])
+  def after_complete
+    resource_class = desc.resource_class
+    resource = resource_class.new(memory.hash[:remote_ids][resource_name])
 
-    return unless @resource_desc.output_fields.count
+    return unless desc.output_fields.count
 
-    memory.hash[:outputs][@resource_name] = resource.outputs
+    memory.hash[:outputs][resource_name] = resource.outputs
   end
 end
 
 # instruction to delete
-class DeleteInstruction < Instruction
-  def initialize(resource_name, resource_desc)
-    @resource_name = resource_name
-    @resource_desc = resource_desc
-  end
-
-  def run(memory)
-    resource_class = @resource_desc.resource_class
+class DeleteInstruction < ResourceInstruction
+  def run
+    resource_class = desc.resource_class
     resource = resource_class.new(memory.hash[:remote_ids][@resource_name])
     resource.delete
   end
@@ -441,76 +638,181 @@ end
 
 # check that delete is completed
 class CheckDeleteInstruction < CheckInstruction
-  def initialize(resource_name, resource_desc)
-    @resource_name = resource_name
-    @resource_desc = resource_desc
-    super(resource_name, resource_desc, :delete)
+  def initialize
+    super :delete
   end
 
-  def after_complete(memory)
-    memory.hash[:deleted] << @resource_name
+  def after_complete
+    memory.hash[:deleted] << resource_name
 
-    return unless @resource_desc.needs_remote_id?
+    return unless desc.needs_remote_id?
 
-    memory.hash[:remote_ids].delete(@resource_name)
+    memory.hash[:remote_ids].delete(resource_name)
   end
 end
 
 # read properties of resource
-class ReadInstruction < Instruction
-  def initialize(resource_name, resource_desc, prop_list)
-    @resource_name = resource_name
-    @resource_desc = resource_desc
-    @prop_list = prop_list
-  end
+class ReadInstruction < ResourceInstruction
+  expects :property_names
 
-  def run(memory)
-    resource_class = @resource_desc.resource_class
-    resource = resource_class.new(memory.hash[:remote_ids][@resource_name])
-    memory.hash[:temp][@resource_name] = resource.read(@prop_list)
+  def run
+    resource_class = desc.resource_class
+    resource = resource_class.new(memory.hash[:remote_ids][resource_name])
+    memory.hash[:temp][resource_name] = resource.read(property_names)
   end
 end
 
 # update a resource
-class UpdateInstruction < Instruction
-  def initialize(resource_name, resource_desc, properties)
-    @resource_name = resource_name
-    @resource_desc = resource_desc
-    @properties = properties
-  end
+class UpdateInstruction < ResourceInstruction
+  expects :properties
 
-  def run(memory)
-    resource_class = @resource_desc.resource_class
-    resource = resource_class.new(memory.hash[:remote_ids][@resource_name])
-    resource.update(@properties)
+  def run
+    resource_class = desc.resource_class
+    resource = resource_class.new(memory.hash[:remote_ids][resource_name])
+    resource.update(properties)
   end
 end
 
 # check that update is completed
 class CheckUpdateInstruction < CheckInstruction
-  def initialize(resource_name, resource_desc)
-    @resource_name = resource_name
-    @resource_desc = resource_desc
-    super(resource_name, resource_desc, :update)
+  def initialize
+    super :update
   end
 
-  def after_complete(memory)
-    resource_class = @resource_desc.resource_class
-    resource = resource_class.new(memory.hash[:remote_ids][@resource_name])
+  def after_complete
+    resource_class = desc.resource_class
+    resource = resource_class.new(memory.hash[:remote_ids][resource_name])
 
-    return unless @resource_desc.output_fields.count
+    return unless desc.output_fields.count
 
-    memory.hash[:outputs][@resource_name] = resource.outputs
+    memory.hash[:outputs][resource_name] = resource.outputs
+  end
+end
+
+# instruction that takes a parameter
+class ImmediateModeInstruction < Instruction
+  def initialize(param)
+    @param = param
+  end
+end
+
+# clears temp memory
+class ClearInstruction < Instruction
+  def run
+    memory.hash[:temp] = {}
+  end
+end
+
+# sets a key
+class KeyInstruction < ImmediateModeInstruction
+  def run
+    memory.hash[:temp][:_key] = @param
+  end
+end
+
+# sets a hash entry based on whatever key was set
+class ValueInstruction < ImmediateModeInstruction
+  def run
+    return memory.error = 'No key set' unless memory.hash[:temp].key? :_key
+
+    key = memory.hash[:temp].delete :_key
+    memory.hash[:temp][key] = @param
+  end
+end
+
+# sets a hash entry and resolves from rom what was set
+class ValueRomInstruction < ImmediateModeInstruction
+  def run
+    return memory.error = 'No key set' unless memory.hash[:temp].key? :_key
+
+    key = memory.hash[:temp].delete :_key
+    memory.hash[:temp][key] = resolve(rom_object)
+  end
+
+  def rom
+    memory.hash[:rom]
+  end
+
+  def rom_object
+    raise 'Not found' unless rom.key? @param
+
+    rom[@param]
+  end
+
+  def resolve(object)
+    case object[:type]
+    when :literal
+      object[:value]
+    when :hash
+      resolve_hash(object)
+    when :array
+      resolve_array(object)
+    when :output
+      resolve_output(object)
+    end
+  end
+
+  def resolve_array(object)
+    result = []
+    object[:references].each do |k, v|
+      result[k] = resolve(rom[v])
+    end
+    result
+  end
+
+  def resolve_hash(object)
+    result = {}
+    object[:references].each do |k, v|
+      result[k] = resolve(rom[v])
+    end
+    result
+  end
+
+  def resolve_output(object)
+    memory.hash[:outputs][object[:resource]][object[:output]]
+  end
+end
+
+# pushes the callstack and branches
+class CallInstruction < ImmediateModeInstruction
+  def run
+    labels = memory.hash[:labels]
+    unless labels.key? @param
+      memory.error = 'Label not found'
+      return
+    end
+
+    memory.call_stack.push(memory.program_counter)
+    memory.program_counter = labels[@param] - 1
+  end
+end
+
+# pops the callstack and goes back
+class ReturnInstruction < Instruction
+  def run
+    return memory.error = 'At bottom of stack' if memory.call_stack.count.zero?
+
+    memory.program_counter = memory.call_stack.pop
+  end
+end
+
+# ends the program
+class EndInstruction < Instruction
+  def run
+    memory.end = true
   end
 end
 
 # memory that can be manipulated by instructions
 class Memory
-  attr_accessor :program_counter, :hash
+  attr_accessor :program_counter, :hash, :call_stack, :error, :end
 
   def initialize
     @program_counter = 0
-    @hash = {}
+    @hash = { temp: {} }
+    @error = nil
+    @call_stack = []
+    @end = false
   end
 end
 
@@ -524,13 +826,19 @@ class Runner
   end
 
   def ended?
-    @memory.program_counter >= @instruction_list.length
+    @memory.program_counter >= @instruction_list.length ||
+      !@memory.error.nil? ||
+      @memory.end
   end
 
   def run_next
     return if ended?
 
-    @instruction_list[@memory.program_counter].run(@memory)
+    @instruction_list[@memory.program_counter].execute(@memory)
     @memory.program_counter += 1
+  rescue RuntimeError => e
+    @error = e
+  rescue StandardError => e
+    @error = e
   end
 end

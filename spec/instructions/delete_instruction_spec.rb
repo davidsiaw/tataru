@@ -5,11 +5,16 @@ require 'tataru'
 describe DeleteInstruction do
   it 'sets hashes' do
     mem = Memory.new
-    resource_desc = BaseResourceDesc.new
-    instr = DeleteInstruction.new('thing', resource_desc)
+    instr = DeleteInstruction.new
 
+    mem.hash[:temp] = {
+      resource_name: 'thing',
+      resource_desc: 'BaseResourceDesc'
+    }
     mem.hash[:remote_ids] = { 'thing' => 'hello' }
+    instr.memory = mem
+    
     expect_any_instance_of(BaseResource).to receive(:delete)
-    instr.run(mem)
+    instr.run
   end
 end

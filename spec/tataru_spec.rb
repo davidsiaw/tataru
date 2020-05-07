@@ -172,6 +172,16 @@ class StringJoinerResourceDesc < BaseResourceDesc
 end
 
 describe Tataru do
+  it 'builds one resource' do
+    rtp = ResourceTypePool.new
+    rtp.add_resource_desc(:file, TestFileResourceDesc)
+    ttr = Tataru.new(rtp)
+    ttr.construct do
+      resource :file, 'something1.txt'
+    end
+
+  end
+
   it 'builds' do
 
     rtp = ResourceTypePool.new
@@ -196,7 +206,6 @@ describe Tataru do
         contents sj.result
       end
     end
-
-    p ttr.instructions
+    puts ttr.instr_hash.to_yaml
   end
 end

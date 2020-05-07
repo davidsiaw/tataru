@@ -17,6 +17,18 @@ describe Runner do
     expect(runner).to_not be_ended
   end
 
+  it 'returns ended when ended' do
+    runner = Runner.new([Instruction.new])
+    runner.memory.end = true
+    expect(runner).to be_ended
+  end
+
+  it 'returns ended when errored' do
+    runner = Runner.new([Instruction.new])
+    runner.memory.error = 'Something'
+    expect(runner).to be_ended
+  end
+
   it 'runs instructions in order' do
     inst1 = Instruction.new
     inst2 = Instruction.new

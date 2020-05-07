@@ -3,20 +3,14 @@
 require 'tataru'
 
 describe InstructionHash do
-  let(:pool) do
-    pool = ResourceTypePool.new
-    pool.add_resource_desc(:base, BaseResourceDesc)
-    pool
-  end
-
   it 'can be made' do
-    im = InstructionHash.new(pool, init: {})
+    im = InstructionHash.new(init: {})
 
     expect(im.instruction_list[0]).to be_a(InitInstruction)
   end
 
   it 'makes init properly' do
-    im = InstructionHash.new(pool, init: {
+    im = InstructionHash.new(init: {
       remote_ids: {
         'thing' => 'abc'
       }
@@ -27,34 +21,41 @@ describe InstructionHash do
   end
 
   it 'adds instructions' do
-    im = InstructionHash.new(pool, instructions:[
-      {
-        type: :resource,
-        action: :create,
-        resourcetype: :base,
-        name: 'something',
-        args: {
-          'somefield' => 'somevalue'
-        }
-      }
+    im = InstructionHash.new(instructions:[
+      :create
     ])
 
-    expect(CreateInstruction).to receive(:new).with(
-      'something',
-      BaseResourceDesc,
-      {
-        'somefield' => 'somevalue'
-      }).and_call_original
+    expect(CreateInstruction).to receive(:new).and_call_original
 
     expect(im.instruction_list[1]).to be_a(CreateInstruction)
   end
 
+  it 'add more instructions' do
+    im = InstructionHash.new(instructions:[
+      :create,
+      :delete
+    ])
+
+    expect(CreateInstruction).to receive(:new).and_call_original
+    expect(DeleteInstruction).to receive(:new).and_call_original
+
+    expect(im.instruction_list[1]).to be_a(CreateInstruction)
+    expect(im.instruction_list[2]).to be_a(DeleteInstruction)
+  end
+
+  it 'adds immediate mode instructions' do
+    im = InstructionHash.new(instructions:[
+      { key: 'name' }
+    ])
+
+    expect(KeyInstruction).to receive(:new).with('name').and_call_original
+
+    expect(im.instruction_list[1]).to be_a(KeyInstruction)
+  end
+
   it 'errors on unknown instruction' do
-    im = InstructionHash.new(pool, instructions:[
-      {
-        type: :awd,
-        action: :create,
-      }
+    im = InstructionHash.new(instructions:[
+      :unknown
     ])
 
     expect { im.instruction_list[0] }.to raise_error "unknown instruction"
