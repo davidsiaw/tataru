@@ -6,6 +6,10 @@ class TestEnvironment
   include Singleton
 
   def initialize
+    clear!
+  end
+
+  def clear!
     # ids decided by server
     @ip_addresses = {}
     # ids decided by user
@@ -148,7 +152,9 @@ class StringJoinerResource < BaseResource
   end
 
   def outputs
-    @remote_id
+    {
+      result: @remote_id
+    }
   end
 end
 
@@ -181,6 +187,8 @@ end
 
 describe Tataru do
   it 'builds one resource' do
+    TestEnvironment.instance.clear!
+
     rtp = ResourceTypePool.new
     rtp.add_resource_desc(:file, TestFileResourceDesc)
     ttr = Tataru.new(rtp)
@@ -199,9 +207,11 @@ describe Tataru do
     expect(TestEnvironment.instance.file('something1.txt')).to include(
       contents: '123'
     )
+    expect(runner.memory.hash[:remote_ids]['file']).to eq 'something1.txt'
   end
 
-  it 'builds' do
+  it 'builds multiple resources' do
+    TestEnvironment.instance.clear!
 
     rtp = ResourceTypePool.new
     rtp.add_resource_desc(:file, TestFileResourceDesc)
@@ -216,7 +226,7 @@ describe Tataru do
 
       r2 = resource :file, 'f2' do
         name 'something2.txt'
-        contents 'meow'
+        contents 'woof'
       end
 
       sj = resource :string_joiner, 'joiner' do
@@ -228,5 +238,23 @@ describe Tataru do
         contents sj.result
       end
     end
+    ih = InstructionHash.new(ttr.instr_hash)
+    runner = Runner.new(ih.instruction_list)
+    loop do
+      runner.run_next
+      break if runner.ended?
+    end
+    binding.pry
+    expect(runner.memory.error).to be_nil
+
+    expect(TestEnvironment.instance.file('something1.txt')).to include(
+      contents: 'meow'
+    )
+    expect(TestEnvironment.instance.file('something2.txt')).to include(
+      contents: 'woof'
+    )
+    expect(runner.memory.hash[:remote_ids]['f1']).to eq 'something1.txt'
+    expect(runner.memory.hash[:remote_ids]['f2']).to eq 'something2.txt'
+    expect(runner.memory.hash[:remote_ids]['cdates']).to eq 'creationdates.txt'
   end
 end
