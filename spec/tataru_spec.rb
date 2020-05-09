@@ -437,6 +437,7 @@ describe Tataru do
 
     TestEnvironment.instance.files = {
       'ddd.txt' => {
+        name: 'ddd.txt',
         contents: 'asd',
         created_at: "2010-01-01 00:00:00 UTC",
         updated_at: "2010-01-01 00:00:00 UTC"
@@ -460,6 +461,7 @@ describe Tataru do
         contents '123'
       end
     end
+    puts ttr.instr_hash.to_yaml
 
     ih = InstructionHash.new(ttr.instr_hash)
     runner = Runner.new(ih.instruction_list)
@@ -474,6 +476,7 @@ describe Tataru do
     expect(runner.memory.error).to be_nil
     expect(TestEnvironment.instance.files).to eq(
       'ddd.txt' => {
+        name: 'ddd.txt',
         contents: '123',
         created_at: "2010-01-01 00:00:00 UTC",
         updated_at: "2011-01-01 00:00:00 UTC"
@@ -488,6 +491,7 @@ describe Tataru do
 
     TestEnvironment.instance.files = {
       'ggg.txt' => {
+        name: 'ggg.txt',
         contents: 'asd',
         created_at: "2010-01-01 00:00:00 UTC",
         updated_at: "2010-01-01 00:00:00 UTC"
@@ -524,6 +528,7 @@ describe Tataru do
     expect(runner.memory.error).to be_nil
     expect(TestEnvironment.instance.files).to eq(
       'fff.txt' => {
+        name: 'fff.txt',
         contents: '123',
         created_at: "2011-01-01 00:00:00 UTC",
         updated_at: "2011-01-01 00:00:00 UTC"

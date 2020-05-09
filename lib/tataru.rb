@@ -408,19 +408,18 @@ class SubroutineCompiler
       :read,
       *load_resource_instructions,
       :rescmp,
+      { value_update: @rrep.name },
       { compare: :recreate },
-      { goto_if: "recreate_#{@rrep.name}" },
-      *load_resource_instructions,
-      :read,
-      *load_resource_instructions,
-      :rescmp,
-      { compare: :update },
-      { goto_if: "update_#{@rrep.name}" }
+      { goto_if: "recreate_update_#{@rrep.name}" },
+      { value_update: @rrep.name },
+      { compare: :modify },
+      { goto_if: "modify_update_#{@rrep.name}" }
     ]
   end
 
   def check_update_instructions
-    []
+    [
+    ]
   end
 
   def commit_update_instructions
@@ -429,6 +428,22 @@ class SubroutineCompiler
 
   def finish_update_instructions
     []
+  end
+
+  def modify_update_instructions
+    [
+      *load_resource_instructions,
+      { key: :properties },
+      { value_rom: @rrep.name },
+      :update
+    ]
+  end
+
+  def recreate_update_instructions
+    [
+      *delete_instructions,
+      *check_delete_instructions
+    ]
   end
 
   def delete_instructions
@@ -521,13 +536,22 @@ class SubPlanner
     @rrep.name
   end
 
+  def extra_subroutines
+    return {} unless @action == :update
+
+    {
+      "#{name}_modify" => SubroutineCompiler.new(@rrep, :"modify_#{@action}"),
+      "#{name}_recreate" => SubroutineCompiler.new(@rrep, :"recreate_#{@action}")
+    }
+  end
+
   def subroutines
     {
       "#{name}_start" => SubroutineCompiler.new(@rrep, :"#{@action}"),
       "#{name}_check" => SubroutineCompiler.new(@rrep, :"check_#{@action}"),
       "#{name}_commit" => SubroutineCompiler.new(@rrep, :"commit_#{@action}"),
       "#{name}_finish" => SubroutineCompiler.new(@rrep, :"finish_#{@action}")
-    }
+    }.merge(extra_subroutines)
   end
 end
 
@@ -619,7 +643,7 @@ class Compiler
   end
 
   def generate_top_instructions
-    order = Bunny::Tsort.tsort(@extant_dependencies.merge @dsl.dep_graph)
+    order = Bunny::Tsort.tsort(@extant_dependencies.merge(@dsl.dep_graph))
 
     generate_step_order(order, %i[start check]) +
       generate_step_order(order.reverse, %i[commit finish])
@@ -785,6 +809,7 @@ class InitInstruction < Instruction
     memory.hash[:labels] = @labels
     memory.hash[:rom] = @rom.freeze
     memory.hash[:deleted] = @deleted
+    memory.hash[:update_action] = {}
   end
 end
 
@@ -882,12 +907,24 @@ end
 
 # read properties of resource
 class ReadInstruction < ResourceInstruction
-  expects :property_names
-
   def run
-    resource_class = desc.resource_class
-    resource = resource_class.new(memory.hash[:remote_ids][resource_name])
-    memory.hash[:temp][resource_name] = resource.read(property_names)
+    results = resource.read(fields)
+    memory.hash[:temp][resource_name] = {}
+    fields.each do |k|
+      memory.hash[:temp][resource_name][k] = results[k]
+    end
+  end
+
+  def resource_class
+    desc.resource_class
+  end
+
+  def resource
+    resource_class.new(memory.hash[:remote_ids][resource_name])
+  end
+
+  def fields
+    @fields ||= desc.immutable_fields + desc.mutable_fields
   end
 end
 
@@ -995,6 +1032,19 @@ module RomReader
   end
 end
 
+# sets temp result
+class ValueUpdateInstruction < ImmediateModeInstruction
+  def run
+    unless memory.hash[:update_action].key? @param
+      raise "No value set for '#{@param}'"
+    end
+
+    memory.hash[:temp] = {
+      result: memory.hash[:update_action][@param]
+    }
+  end
+end
+
 # goto if temp result is non zero
 class GotoIfInstruction < ImmediateModeInstruction
   def run
@@ -1003,8 +1053,16 @@ class GotoIfInstruction < ImmediateModeInstruction
     memory.program_counter = if @param.is_a? Integer
                                @param - 1
                              else
-                               memory.hash[:labels][@param] - 1
+                               label_branch!
                              end
+  end
+
+  def label_branch!
+    unless memory.hash[:labels]&.key?(@param)
+      raise "Label '#{@param}' not found"
+    end
+
+    memory.hash[:labels][@param] - 1
   end
 end
 
@@ -1026,16 +1084,20 @@ class RescmpInstruction < ResourceInstruction
   def run
     raise 'Not found' unless rom.key? resource_name
 
+    update!
+  end
+
+  def update!
     current = memory.hash[:temp][resource_name]
     desired = resolve(rom[resource_name])
 
-    memory.hash[:temp] = { result: compare(current, desired) }
+    memory.hash[:update_action] = { resource_name => compare(current, desired) }
   end
 
   def compare(current, desired)
     result = :no_change
     desc.mutable_fields.each do |field|
-      result = :update if current[field] != desired[field]
+      result = :modify if current[field] != desired[field]
     end
     desc.immutable_fields.each do |field|
       result = :recreate if current[field] != desired[field]

@@ -33,13 +33,15 @@ describe RescmpInstruction do
       }
     }
 
+    mem.hash[:update_action] = {}
+
     instr.memory = mem
     instr.run
 
-    expect(mem.hash[:temp][:result]).to eq :no_change
+    expect(mem.hash[:update_action]['thing']).to eq :no_change
   end
 
-  it 'sets temp result to update if there are changes to mutable' do
+  it 'sets temp result to modify if there are changes to mutable' do
     mem = Memory.new
     instr = RescmpInstruction.new
 
@@ -66,10 +68,12 @@ describe RescmpInstruction do
       }
     }
 
+    mem.hash[:update_action] = {}
+
     instr.memory = mem
     instr.run
 
-    expect(mem.hash[:temp][:result]).to eq :update
+    expect(mem.hash[:update_action]['thing']).to eq :modify
   end
 
   it 'sets temp result to recreate if there are changes to immutable' do
@@ -99,9 +103,11 @@ describe RescmpInstruction do
       }
     }
 
+    mem.hash[:update_action] = {}
+
     instr.memory = mem
     instr.run
 
-    expect(mem.hash[:temp][:result]).to eq :recreate
+    expect(mem.hash[:update_action]['thing']).to eq :recreate
   end
 end
