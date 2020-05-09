@@ -383,14 +383,14 @@ class SubroutineCompiler
       *load_resource_instructions,
       { key: :properties },
       { value_rom: @rrep.name },
-      @action
+      :create
     ]
   end
 
   def check_create_instructions
     [
       *load_resource_instructions,
-      @action
+      :check_create
     ]
   end
 
@@ -410,15 +410,21 @@ class SubroutineCompiler
       :rescmp,
       { value_update: @rrep.name },
       { compare: :recreate },
-      { goto_if: "recreate_update_#{@rrep.name}" },
+      { goto_if: "recreate_#{@rrep.name}" },
       { value_update: @rrep.name },
       { compare: :modify },
-      { goto_if: "modify_update_#{@rrep.name}" }
+      { goto_if: "modify_#{@rrep.name}" }
     ]
   end
 
   def check_update_instructions
     [
+      { value_update: @rrep.name },
+      { compare: :recreate },
+      { goto_if: "recreate_check_#{@rrep.name}" },
+      { value_update: @rrep.name },
+      { compare: :modify },
+      { goto_if: "modify_check_#{@rrep.name}" }
     ]
   end
 
@@ -430,7 +436,7 @@ class SubroutineCompiler
     []
   end
 
-  def modify_update_instructions
+  def modify_instructions
     [
       *load_resource_instructions,
       { key: :properties },
@@ -439,10 +445,24 @@ class SubroutineCompiler
     ]
   end
 
-  def recreate_update_instructions
+  def recreate_instructions
     [
       *delete_instructions,
-      *check_delete_instructions
+      *check_delete_instructions,
+      *create_instructions
+    ]
+  end
+
+  def modify_check_instructions
+    [
+      *load_resource_instructions,
+      :check_update
+    ]
+  end
+
+  def recreate_check_instructions
+    [
+      *check_create_instructions
     ]
   end
 
@@ -451,7 +471,7 @@ class SubroutineCompiler
 
     [
       *load_resource_instructions,
-      @action
+      :delete
     ]
   end
 
@@ -460,7 +480,7 @@ class SubroutineCompiler
 
     [
       *load_resource_instructions,
-      @action
+      :check_delete
     ]
   end
 
@@ -469,7 +489,7 @@ class SubroutineCompiler
 
     [
       *load_resource_instructions,
-      base_action
+      :delete
     ]
   end
 
@@ -478,7 +498,7 @@ class SubroutineCompiler
 
     [
       *load_resource_instructions,
-      :"check_#{base_action}"
+      :check_delete
     ]
   end
 
@@ -540,8 +560,10 @@ class SubPlanner
     return {} unless @action == :update
 
     {
-      "#{name}_modify" => SubroutineCompiler.new(@rrep, :"modify_#{@action}"),
-      "#{name}_recreate" => SubroutineCompiler.new(@rrep, :"recreate_#{@action}")
+      "#{name}_modify" => SubroutineCompiler.new(@rrep, :modify),
+      "#{name}_recreate" => SubroutineCompiler.new(@rrep, :recreate),
+      "#{name}_modify_check" => SubroutineCompiler.new(@rrep, :modify_check),
+      "#{name}_recreate_check" => SubroutineCompiler.new(@rrep, :recreate_check)
     }
   end
 
@@ -1062,6 +1084,7 @@ class GotoIfInstruction < ImmediateModeInstruction
       raise "Label '#{@param}' not found"
     end
 
+    puts @param.upcase
     memory.hash[:labels][@param] - 1
   end
 end

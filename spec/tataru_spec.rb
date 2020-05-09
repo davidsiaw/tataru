@@ -31,6 +31,7 @@ class TestEnvironment
     raise 'Duplicate file name' if @files.key? name
 
     @files[name] = {
+      name: name,
       contents: contents,
       updated_at: Time.now.utc.to_s,
       created_at: Time.now.utc.to_s
@@ -318,6 +319,7 @@ describe Tataru do
     expect(runner.memory.error).to be_nil
     expect(TestEnvironment.instance.files).to eq(
       'something1.txt' => {
+        name: 'something1.txt',
         contents: '123',
         created_at: "2011-01-01 00:00:00 UTC",
         updated_at: "2011-01-01 00:00:00 UTC"
@@ -368,6 +370,7 @@ describe Tataru do
     expect(runner.memory.error).to be_nil
     expect(TestEnvironment.instance.files).to eq(
       'something2.txt' => {
+        name: 'something2.txt',
         contents: '123',
         created_at: "2011-01-01 00:00:00 UTC",
         updated_at: "2011-01-01 00:00:00 UTC"
@@ -461,7 +464,6 @@ describe Tataru do
         contents '123'
       end
     end
-    puts ttr.instr_hash.to_yaml
 
     ih = InstructionHash.new(ttr.instr_hash)
     runner = Runner.new(ih.instruction_list)

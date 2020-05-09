@@ -164,11 +164,14 @@ describe Compiler do
     expect(SubroutineCompiler).to receive(:new).with(dog, :check_update)
     expect(SubroutineCompiler).to receive(:new).with(dog, :commit_update)
     expect(SubroutineCompiler).to receive(:new).with(dog, :finish_update)
-    expect(SubroutineCompiler).to receive(:new).with(dog, :modify_update)
-    expect(SubroutineCompiler).to receive(:new).with(dog, :recreate_update)
+    expect(SubroutineCompiler).to receive(:new).with(dog, :modify)
+    expect(SubroutineCompiler).to receive(:new).with(dog, :modify_check)
+    expect(SubroutineCompiler).to receive(:new).with(dog, :recreate)
+    expect(SubroutineCompiler).to receive(:new).with(dog, :recreate_check)
 
     expect(compiler.generate_subroutines.keys).to eq [
-      'ddog_start', 'ddog_check', 'ddog_commit', 'ddog_finish', 'ddog_modify', 'ddog_recreate'
+      'ddog_start', 'ddog_check', 'ddog_commit', 'ddog_finish',
+      'ddog_modify', 'ddog_recreate', 'ddog_modify_check', 'ddog_recreate_check'
     ]
   end
 end
