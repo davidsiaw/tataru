@@ -17,35 +17,22 @@ describe SubroutineCompiler do
     expect(sc.call_instruction).to eq(call: 'pet_cat')
   end
 
+  it 'throws on unknown subroutine action' do
+    rrep = ResourceRepresentation.new('cat', BaseResourceDesc.new, {})
+    sc = SubroutineCompiler.new(rrep, :pet)
+
+    expect { sc.body_instructions }.to raise_error NoMethodError
+  end
+
   it 'provides the standard body instructions' do
     rrep = ResourceRepresentation.new('cat', BaseResourceDesc.new, {})
     sc = SubroutineCompiler.new(rrep, :pet)
+    
+    allow(sc).to receive(:pet_instructions) { [:make_pet] }
 
     expect(sc.body_instructions).to eq [
       :clear,
-      {key: :resource_name},
-      {value: 'cat'},
-      {key: :resource_desc},
-      {value: 'BaseResourceDesc'},
-      :pet,
-      :return
-    ]
-  end
-
-  it 'provides extra instructions if available' do
-    rrep = ResourceRepresentation.new('cat', BaseResourceDesc.new, {})
-    sc = SubroutineCompiler.new(rrep, :pet)
-
-    allow(sc).to receive(:pet_extra_instructions) { [:feed] }
-
-    expect(sc.body_instructions).to eq [
-      :clear,
-      {key: :resource_name},
-      {value: 'cat'},
-      {key: :resource_desc},
-      {value: 'BaseResourceDesc'},
-      :feed,
-      :pet,
+      :make_pet,
       :return
     ]
   end

@@ -10,7 +10,7 @@ describe InitInstruction do
     instr.run
     expect(mem.hash.key? :remote_ids).to eq true
     expect(mem.hash.key? :outputs).to eq true
-    expect(mem.hash.key? :errors).to eq true
+    expect(mem.hash.key? :labels).to eq true
     expect(mem.hash.key? :deleted).to eq true
   end
 end

@@ -86,12 +86,20 @@ describe Compiler do
 
     allow(dsl).to receive(:dep_graph) { { a: [:b], c: [:b], b: [] } }
 
-    expect(dummy_subroutine_hash).to receive(:[]).with('a') { dummy }
-    expect(dummy_subroutine_hash).to receive(:[]).with('a_check') { dummy }
-    expect(dummy_subroutine_hash).to receive(:[]).with('b') { dummy }
+    expect(dummy_subroutine_hash).to receive(:[]).with('b_start') { dummy }
     expect(dummy_subroutine_hash).to receive(:[]).with('b_check') { dummy }
-    expect(dummy_subroutine_hash).to receive(:[]).with('c') { dummy }
+    expect(dummy_subroutine_hash).to receive(:[]).with('b_commit') { dummy }
+    expect(dummy_subroutine_hash).to receive(:[]).with('b_finish') { dummy }
+
+    expect(dummy_subroutine_hash).to receive(:[]).with('a_start') { dummy }
+    expect(dummy_subroutine_hash).to receive(:[]).with('a_check') { dummy }
+    expect(dummy_subroutine_hash).to receive(:[]).with('a_commit') { dummy }
+    expect(dummy_subroutine_hash).to receive(:[]).with('a_finish') { dummy }
+
+    expect(dummy_subroutine_hash).to receive(:[]).with('c_start') { dummy }
     expect(dummy_subroutine_hash).to receive(:[]).with('c_check') { dummy }
+    expect(dummy_subroutine_hash).to receive(:[]).with('c_commit') { dummy }
+    expect(dummy_subroutine_hash).to receive(:[]).with('c_finish') { dummy }
 
     compiler.generate_top_instructions
   end
@@ -111,12 +119,54 @@ describe Compiler do
 
     expect(SubroutineCompiler).to receive(:new).with(cat, :create)
     expect(SubroutineCompiler).to receive(:new).with(cat, :check_create)
-    
+
+    expect(SubroutineCompiler).to receive(:new).with(cat, :commit_create)
+    expect(SubroutineCompiler).to receive(:new).with(cat, :finish_create)
+
     expect(SubroutineCompiler).to receive(:new).with(dog, :create)
     expect(SubroutineCompiler).to receive(:new).with(dog, :check_create)
 
+    expect(SubroutineCompiler).to receive(:new).with(dog, :commit_create)
+    expect(SubroutineCompiler).to receive(:new).with(dog, :finish_create)
+
     expect(compiler.generate_subroutines.keys).to eq [
-      'cat', 'cat_check', 'dog', 'dog_check'
+      'ccat_start', 'ccat_check', 'ccat_commit', 'ccat_finish',
+      'ddog_start', 'ddog_check', 'ddog_commit', 'ddog_finish'
+    ]
+  end
+
+  it 'generates delete instructions for extant names' do
+    dsl = TopDsl.new(ResourceTypePool.new)
+    compiler = Compiler.new(dsl, { 'thing' => 'BaseResourceDesc' })
+
+    expect(SubroutineCompiler).to receive(:new).with(instance_of(ResourceRepresentation), :delete)
+    expect(SubroutineCompiler).to receive(:new).with(instance_of(ResourceRepresentation), :check_delete)
+    expect(SubroutineCompiler).to receive(:new).with(instance_of(ResourceRepresentation), :commit_delete)
+    expect(SubroutineCompiler).to receive(:new).with(instance_of(ResourceRepresentation), :finish_delete)
+
+    expect(compiler.generate_subroutines.keys).to eq [
+      'thing_start', 'thing_check', 'thing_commit', 'thing_finish'
+    ]
+  end
+
+  it 'generates update instructions for extant names that are set' do
+    dsl = TopDsl.new(ResourceTypePool.new)
+    compiler = Compiler.new(dsl, { 'thong' => 'BaseResourceDesc' })
+
+    dog = ResourceRepresentation.new('ddog', BaseResourceDesc.new, {})
+    allow(dsl).to receive(:resources) do
+      {
+        'thong' => dog
+      }
+    end
+
+    expect(SubroutineCompiler).to receive(:new).with(dog, :update)
+    expect(SubroutineCompiler).to receive(:new).with(dog, :check_update)
+    expect(SubroutineCompiler).to receive(:new).with(dog, :commit_update)
+    expect(SubroutineCompiler).to receive(:new).with(dog, :finish_update)
+
+    expect(compiler.generate_subroutines.keys).to eq [
+      'ddog_start', 'ddog_check', 'ddog_commit', 'ddog_finish'
     ]
   end
 end

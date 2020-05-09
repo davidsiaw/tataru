@@ -191,7 +191,6 @@ class ResourceRepresentation < Representation
     @name = name
     @properties = properties
     @desc = desc
-    check_required_fields!
   end
 
   def check_required_fields!
@@ -345,34 +344,126 @@ class SubroutineCompiler
     @action = action
   end
 
+  def desc
+    @rrep.desc
+  end
+
   def label
     "#{@action}_#{@rrep.name}"
+  end
+
+  def base_action
+    @action.to_s.split('_')[1].to_s
   end
 
   def body_instructions
     [
       :clear,
-      { key: :resource_name },
-      { value: @rrep.name },
-      { key: :resource_desc },
-      { value: @rrep.desc.class.name },
-      *extra_instructions,
-      @action,
+      *inner_instructions,
       :return
     ]
   end
 
-  def extra_instructions
-    key = :"#{@action}_extra_instructions"
-    return unless respond_to?(key)
-
-    send(key)
+  def load_resource_instructions
+    [
+      { key: :resource_name },
+      { value: @rrep.name },
+      { key: :resource_desc },
+      { value: @rrep.desc.class.name }
+    ]
   end
 
-  def create_extra_instructions
+  def inner_instructions
+    send :"#{@action}_instructions"
+  end
+
+  def create_instructions
+    @rrep.check_required_fields!
     [
+      *load_resource_instructions,
       { key: :properties },
-      { value_rom: @rrep.name }
+      { value_rom: @rrep.name },
+      @action
+    ]
+  end
+
+  def check_create_instructions
+    [
+      *load_resource_instructions,
+      @action
+    ]
+  end
+
+  def commit_create_instructions
+    []
+  end
+
+  def finish_create_instructions
+    []
+  end
+
+  def update_instructions
+    [
+      *load_resource_instructions,
+      :read,
+      *load_resource_instructions,
+      :rescmp,
+      { compare: :recreate },
+      { goto_if: "recreate_#{@rrep.name}" },
+      *load_resource_instructions,
+      :read,
+      *load_resource_instructions,
+      :rescmp,
+      { compare: :update },
+      { goto_if: "update_#{@rrep.name}" }
+    ]
+  end
+
+  def check_update_instructions
+    []
+  end
+
+  def commit_update_instructions
+    []
+  end
+
+  def finish_update_instructions
+    []
+  end
+
+  def delete_instructions
+    return [] if desc.delete_at_end?
+
+    [
+      *load_resource_instructions,
+      @action
+    ]
+  end
+
+  def check_delete_instructions
+    return [] if desc.delete_at_end?
+
+    [
+      *load_resource_instructions,
+      @action
+    ]
+  end
+
+  def commit_delete_instructions
+    return [] unless desc.delete_at_end?
+
+    [
+      *load_resource_instructions,
+      base_action
+    ]
+  end
+
+  def finish_delete_instructions
+    return [] unless desc.delete_at_end?
+
+    [
+      *load_resource_instructions,
+      :"check_#{base_action}"
     ]
   end
 
@@ -419,10 +510,33 @@ class InitHashCompiler
   end
 end
 
+# returns subroutines required based on the resource
+class SubPlanner
+  def initialize(rrep, action)
+    @rrep = rrep
+    @action = action
+  end
+
+  def name
+    @rrep.name
+  end
+
+  def subroutines
+    {
+      "#{name}_start" => SubroutineCompiler.new(@rrep, :"#{@action}"),
+      "#{name}_check" => SubroutineCompiler.new(@rrep, :"check_#{@action}"),
+      "#{name}_commit" => SubroutineCompiler.new(@rrep, :"commit_#{@action}"),
+      "#{name}_finish" => SubroutineCompiler.new(@rrep, :"finish_#{@action}")
+    }
+  end
+end
+
 # compiler
 class Compiler
-  def initialize(dsl)
+  def initialize(dsl, extant_resources = {}, extant_dependencies = {})
     @dsl = dsl
+    @extant = extant_resources
+    @extant_dependencies = extant_dependencies
   end
 
   def instr_hash
@@ -465,34 +579,58 @@ class Compiler
     end.to_h
   end
 
+  def deletables
+    @extant.reject { |k, _| @dsl.resources.key? k }
+  end
+
+  def updatables
+    @dsl.resources
+  end
+
   def generate_subroutines
     result = {}
-    @dsl.resources.each do |k, v|
-      result[k.to_s] = SubroutineCompiler.new(v, :create)
-      result["#{k}_check"] = SubroutineCompiler.new(v, :check_create)
+    # set up resources for deletion
+    deletables.each do |k, v|
+      desc = Kernel.const_get(v).new
+      rrep = ResourceRepresentation.new(k, desc, {})
+      sp = SubPlanner.new(rrep, :delete)
+      result.merge!(sp.subroutines)
+    end
+
+    # set up resources for updates or creates
+    updatables.each do |k, rrep|
+      action = @extant.key?(k) ? :update : :create
+      sp = SubPlanner.new(rrep, action)
+      result.merge!(sp.subroutines)
     end
     result
   end
 
-  def generate_top_instructions
-    order = Bunny::Tsort.tsort(@dsl.dep_graph)
+  def generate_step_order(order, steps)
     instructions = []
     order.each do |level|
-      checks = []
-      level.each do |item|
-        instructions << subroutines[item.to_s].call_instruction
-        checks << subroutines["#{item}_check"].call_instruction
+      steps.each do |step|
+        instructions += level.map do |item|
+          subroutines["#{item}_#{step}"].call_instruction
+        end
       end
-      instructions += checks
     end
     instructions
+  end
+
+  def generate_top_instructions
+    order = Bunny::Tsort.tsort(@extant_dependencies.merge @dsl.dep_graph)
+
+    generate_step_order(order, %i[start check]) +
+      generate_step_order(order.reverse, %i[commit finish])
   end
 end
 
 # tataru
 class Tataru
-  def initialize(pool)
+  def initialize(pool, current_state = {})
     @pool = pool
+    @current_state = current_state
     @dsl = TopDsl.new(pool)
   end
 
@@ -500,9 +638,29 @@ class Tataru
     @dsl.instance_eval(&block)
   end
 
+  def extant_resources
+    @current_state.map do |resname, info|
+      [resname, info[:desc]]
+    end.to_h
+  end
+
+  def remote_ids
+    @current_state.map do |resname, info|
+      [resname, info[:name]]
+    end.to_h
+  end
+
+  def extant_dependencies
+    @current_state.map do |resname, info|
+      [resname, info[:dependencies]]
+    end.to_h
+  end
+
   def instr_hash
-    c = Compiler.new(@dsl)
-    c.instr_hash
+    c = Compiler.new(@dsl, extant_resources, extant_dependencies)
+    result = c.instr_hash
+    result[:init][:remote_ids] = remote_ids
+    result
   end
 end
 
@@ -556,7 +714,9 @@ class InstructionHash
 
   def instruction_for(action)
     instr_const = "#{action}_instruction".camelize
-    raise 'unknown instruction' unless Kernel.const_defined? instr_const
+    unless Kernel.const_defined? instr_const
+      raise "Unknown instruction '#{action}'"
+    end
 
     Kernel.const_get(instr_const)
   end
@@ -566,7 +726,7 @@ class InstructionHash
 
     inithash = @thehash[:init]
     if inithash
-      %i[remote_ids outputs errors deleted rom labels].each do |member|
+      %i[remote_ids outputs deleted rom labels].each do |member|
         init.send(:"#{member}=", inithash[member]) if inithash.key? member
       end
     end
@@ -609,12 +769,11 @@ end
 
 # instruction to initialize the memory
 class InitInstruction < Instruction
-  attr_accessor :remote_ids, :outputs, :errors, :rom, :labels, :deleted
+  attr_accessor :remote_ids, :outputs, :rom, :labels, :deleted
 
   def initialize
     @remote_ids = {}
     @outputs = {}
-    @errors = {}
     @rom = {}
     @labels = {}
     @deleted = []
@@ -623,7 +782,6 @@ class InitInstruction < Instruction
   def run
     memory.hash[:remote_ids] = @remote_ids
     memory.hash[:outputs] = @outputs
-    memory.hash[:errors] = @errors
     memory.hash[:labels] = @labels
     memory.hash[:rom] = @rom.freeze
     memory.hash[:deleted] = @deleted
@@ -702,7 +860,7 @@ end
 class DeleteInstruction < ResourceInstruction
   def run
     resource_class = desc.resource_class
-    resource = resource_class.new(memory.hash[:remote_ids][@resource_name])
+    resource = resource_class.new(memory.hash[:remote_ids][resource_name])
     resource.delete
   end
 end
@@ -797,23 +955,10 @@ class ValueInstruction < ImmediateModeInstruction
   end
 end
 
-# sets a hash entry and resolves from rom what was set
-class ValueRomInstruction < ImmediateModeInstruction
-  def run
-    return memory.error = 'No key set' unless memory.hash[:temp].key? :_key
-
-    key = memory.hash[:temp].delete :_key
-    memory.hash[:temp][key] = resolve(rom_object)
-  end
-
+# Reads Rom values
+module RomReader
   def rom
     memory.hash[:rom]
-  end
-
-  def rom_object
-    raise 'Not found' unless rom.key? @param
-
-    rom[@param]
   end
 
   def resolve(object)
@@ -847,6 +992,73 @@ class ValueRomInstruction < ImmediateModeInstruction
 
   def resolve_output(object)
     memory.hash[:outputs][object[:resource]][object[:output]]
+  end
+end
+
+# goto if temp result is non zero
+class GotoIfInstruction < ImmediateModeInstruction
+  def run
+    return if memory.hash[:temp][:result].zero?
+
+    memory.program_counter = if @param.is_a? Integer
+                               @param - 1
+                             else
+                               memory.hash[:labels][@param] - 1
+                             end
+  end
+end
+
+# compares whats in temp result to param
+class CompareInstruction < ImmediateModeInstruction
+  def run
+    memory.hash[:temp][:result] = if memory.hash[:temp][:result] == @param
+                                    1
+                                  else
+                                    0
+                                  end
+  end
+end
+
+# compares resource in temp and resource in top
+class RescmpInstruction < ResourceInstruction
+  include RomReader
+
+  def run
+    raise 'Not found' unless rom.key? resource_name
+
+    current = memory.hash[:temp][resource_name]
+    desired = resolve(rom[resource_name])
+
+    memory.hash[:temp] = { result: compare(current, desired) }
+  end
+
+  def compare(current, desired)
+    result = :no_change
+    desc.mutable_fields.each do |field|
+      result = :update if current[field] != desired[field]
+    end
+    desc.immutable_fields.each do |field|
+      result = :recreate if current[field] != desired[field]
+    end
+    result
+  end
+end
+
+# sets a hash entry and resolves from rom what was set
+class ValueRomInstruction < ImmediateModeInstruction
+  include RomReader
+
+  def run
+    return memory.error = 'No key set' unless memory.hash[:temp].key? :_key
+
+    key = memory.hash[:temp].delete :_key
+    memory.hash[:temp][key] = resolve(rom_object)
+  end
+
+  def rom_object
+    raise 'Not found' unless rom.key? @param
+
+    rom[@param]
   end
 end
 

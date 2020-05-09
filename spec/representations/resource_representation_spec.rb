@@ -22,10 +22,11 @@ describe ResourceRepresentation do
 
   it 'throws error if required field not filled' do
     desc = BaseResourceDesc.new
+    rr = ResourceRepresentation.new('file', desc, {})
     allow(desc).to receive(:immutable_fields) { [:filename] }
     allow(desc).to receive(:required_fields) { [:filename] }
 
-    expect { rr = ResourceRepresentation.new('file', desc, {}) }.to raise_error "Required field 'filename' not provided in 'file'"
+    expect { rr.check_required_fields! }.to raise_error "Required field 'filename' not provided in 'file'"
   end
 
   it 'throws error when no such output' do

@@ -58,6 +58,6 @@ describe InstructionHash do
       :unknown
     ])
 
-    expect { im.instruction_list[0] }.to raise_error "unknown instruction"
+    expect { im.instruction_list[0] }.to raise_error "Unknown instruction 'unknown'"
   end
 end
