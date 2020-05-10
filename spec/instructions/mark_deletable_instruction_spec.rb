@@ -2,10 +2,10 @@
 
 require 'tataru'
 
-describe DeleteInstruction do
-  it 'calls delete on the resource' do
+describe MarkDeletableInstruction do
+  it 'set a resource as deletable' do
     mem = Memory.new
-    instr = DeleteInstruction.new
+    instr = MarkDeletableInstruction.new
 
     mem.hash[:temp] = {
       resource_name: 'thing',
@@ -13,8 +13,8 @@ describe DeleteInstruction do
     }
     mem.hash[:remote_ids] = { 'thing' => 'hello' }
     instr.memory = mem
-
-    expect_any_instance_of(BaseResource).to receive(:delete)
     instr.run
+
+    expect(mem.hash[:remote_ids]).to eq('_deletable_thing' => 'hello')
   end
 end

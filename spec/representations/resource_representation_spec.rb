@@ -37,4 +37,14 @@ describe ResourceRepresentation do
 
     expect { rr.updated_at }.to raise_error NoMethodError
   end
+
+  it 'throws error when no such output' do
+    desc = BaseResourceDesc.new
+    allow(desc).to receive(:needs_remote_id?) { false }
+    allow(desc).to receive(:delete_at_end?) { true }
+
+    expect { ResourceRepresentation.new('file', desc, {}) }.to raise_error(
+      'must need remote id if deletes at end'
+    )
+  end
 end

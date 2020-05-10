@@ -130,7 +130,11 @@ class ResourceDsl
 
     resolver = Resolver.new(args[0])
     @dependencies += resolver.dependencies
-    @properties[name] = resolver.representation
+    @properties[name] = if resolver.representation.is_a? ResourceRepresentation
+                          resolver.representation.remote_id
+                        else
+                          resolver.representation
+                        end
   end
 
   def representation
@@ -191,6 +195,13 @@ class ResourceRepresentation < Representation
     @name = name
     @properties = properties
     @desc = desc
+    check_late_deletability!
+  end
+
+  def check_late_deletability!
+    return unless @desc.delete_at_end? && !@desc.needs_remote_id?
+
+    raise 'must need remote id if deletes at end'
   end
 
   def check_required_fields!
@@ -203,6 +214,10 @@ class ResourceRepresentation < Representation
 
   def respond_to_missing?(name, *_args)
     true if @desc.output_fields.include? name
+  end
+
+  def remote_id
+    OutputRepresentation.new(@name, :remote_id)
   end
 
   def method_missing(name, *args, &block)
@@ -429,11 +444,19 @@ class SubroutineCompiler
   end
 
   def commit_update_instructions
-    []
+    [
+      { value_update: @rrep.name },
+      { compare: :recreate },
+      { goto_if: "recreate_commit_#{@rrep.name}" }
+    ]
   end
 
   def finish_update_instructions
-    []
+    [
+      { value_update: @rrep.name },
+      { compare: :recreate },
+      { goto_if: "recreate_finish_#{@rrep.name}" }
+    ]
   end
 
   def modify_instructions
@@ -445,14 +468,6 @@ class SubroutineCompiler
     ]
   end
 
-  def recreate_instructions
-    [
-      *delete_instructions,
-      *check_delete_instructions,
-      *create_instructions
-    ]
-  end
-
   def modify_check_instructions
     [
       *load_resource_instructions,
@@ -460,9 +475,50 @@ class SubroutineCompiler
     ]
   end
 
+  def recreate_instructions
+    deletion_routine = [
+      *load_resource_instructions,
+      :mark_deletable
+    ]
+    unless desc.delete_at_end?
+      deletion_routine = [
+        *delete_instructions,
+        *check_delete_instructions
+      ]
+    end
+    [
+      *deletion_routine,
+      *create_instructions
+    ]
+  end
+
   def recreate_check_instructions
     [
       *check_create_instructions
+    ]
+  end
+
+  def recreate_commit_instructions
+    return [] unless desc.delete_at_end?
+
+    [
+      { key: :resource_name },
+      { value: "_deletable_#{@rrep.name}" },
+      { key: :resource_desc },
+      { value: @rrep.desc.class.name },
+      :delete
+    ]
+  end
+
+  def recreate_finish_instructions
+    return [] unless desc.delete_at_end?
+
+    [
+      { key: :resource_name },
+      { value: "_deletable_#{@rrep.name}" },
+      { key: :resource_desc },
+      { value: @rrep.desc.class.name },
+      :check_delete
     ]
   end
 
@@ -556,23 +612,29 @@ class SubPlanner
     @rrep.name
   end
 
+  def compile(*args)
+    SubroutineCompiler.new(@rrep, *args)
+  end
+
   def extra_subroutines
     return {} unless @action == :update
 
     {
-      "#{name}_modify" => SubroutineCompiler.new(@rrep, :modify),
-      "#{name}_recreate" => SubroutineCompiler.new(@rrep, :recreate),
-      "#{name}_modify_check" => SubroutineCompiler.new(@rrep, :modify_check),
-      "#{name}_recreate_check" => SubroutineCompiler.new(@rrep, :recreate_check)
+      "#{name}_modify" => compile(:modify),
+      "#{name}_modify_check" => compile(:modify_check),
+      "#{name}_recreate" => compile(:recreate),
+      "#{name}_recreate_check" => compile(:recreate_check),
+      "#{name}_recreate_commit" => compile(:recreate_commit),
+      "#{name}_recreate_finish" => compile(:recreate_finish)
     }
   end
 
   def subroutines
     {
-      "#{name}_start" => SubroutineCompiler.new(@rrep, :"#{@action}"),
-      "#{name}_check" => SubroutineCompiler.new(@rrep, :"check_#{@action}"),
-      "#{name}_commit" => SubroutineCompiler.new(@rrep, :"commit_#{@action}"),
-      "#{name}_finish" => SubroutineCompiler.new(@rrep, :"finish_#{@action}")
+      "#{name}_start" => compile(:"#{@action}"),
+      "#{name}_check" => compile(:"check_#{@action}"),
+      "#{name}_commit" => compile(:"commit_#{@action}"),
+      "#{name}_finish" => compile(:"finish_#{@action}")
     }.merge(extra_subroutines)
   end
 end
@@ -903,6 +965,14 @@ class CheckCreateInstruction < CheckInstruction
   end
 end
 
+# puts remote id up for deletion
+class MarkDeletableInstruction < ResourceInstruction
+  def run
+    remote_id = memory.hash[:remote_ids].delete(resource_name)
+    memory.hash[:remote_ids]["_deletable_#{resource_name}"] = remote_id
+  end
+end
+
 # instruction to delete
 class DeleteInstruction < ResourceInstruction
   def run
@@ -1050,7 +1120,11 @@ module RomReader
   end
 
   def resolve_output(object)
-    memory.hash[:outputs][object[:resource]][object[:output]]
+    if object[:output] == :remote_id
+      memory.hash[:remote_ids][object[:resource]]
+    else
+      memory.hash[:outputs][object[:resource]][object[:output]]
+    end
   end
 end
 
@@ -1084,7 +1158,6 @@ class GotoIfInstruction < ImmediateModeInstruction
       raise "Label '#{@param}' not found"
     end
 
-    puts @param.upcase
     memory.hash[:labels][@param] - 1
   end
 end
@@ -1114,7 +1187,7 @@ class RescmpInstruction < ResourceInstruction
     current = memory.hash[:temp][resource_name]
     desired = resolve(rom[resource_name])
 
-    memory.hash[:update_action] = { resource_name => compare(current, desired) }
+    memory.hash[:update_action][resource_name] = compare(current, desired)
   end
 
   def compare(current, desired)
