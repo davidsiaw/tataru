@@ -2,10 +2,10 @@
 
 require 'tataru'
 
-describe ValueUpdateInstruction do
+describe Tataru::Instructions::ValueUpdateInstruction do
   it 'sets temp with update action of resource' do
-    mem = Memory.new
-    instr = ValueUpdateInstruction.new('thething')
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::ValueUpdateInstruction.new('thething')
 
     mem.hash[:update_action] = {
       'thething' => :hello
@@ -22,8 +22,8 @@ describe ValueUpdateInstruction do
   end
 
   it 'throws if no such resource' do
-    mem = Memory.new
-    instr = ValueUpdateInstruction.new('thething')
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::ValueUpdateInstruction.new('thething')
 
     mem.hash[:update_action] = {}
 

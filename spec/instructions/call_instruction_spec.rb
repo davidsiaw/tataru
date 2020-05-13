@@ -2,10 +2,10 @@
 
 require 'tataru'
 
-describe CallInstruction do
+describe Tataru::Instructions::CallInstruction do
   it 'call an existing label' do
-    mem = Memory.new
-    instr = CallInstruction.new('function')
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::CallInstruction.new('function')
 
     mem.hash[:labels] = { 'function' => 10 }
     instr.memory = mem
@@ -15,9 +15,9 @@ describe CallInstruction do
   end
 
   it 'sets error if no such label' do
-    mem = Memory.new
+    mem = Tataru::Memory.new
     mem.hash[:labels] = { }
-    instr = CallInstruction.new('function')
+    instr = Tataru::Instructions::CallInstruction.new('function')
 
     instr.memory = mem
     instr.run

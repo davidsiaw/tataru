@@ -2,9 +2,9 @@
 
 require 'tataru'
 
-describe Representation do
+describe Tataru::Representation do
   it 'has no dependencies' do
-    rep = LiteralRepresentation.new('hello')
+    rep = Tataru::Representations::LiteralRepresentation.new('hello')
     expect(rep.dependencies).to eq []
   end
 end

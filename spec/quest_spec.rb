@@ -130,7 +130,7 @@ class TestEnvironment
 end
 
 # base class of resource
-class TestFileResource < BaseResource
+class TestFileResource < Tataru::BaseResource
   def create(params)
     TestEnvironment.instance.create_file(params[:name], params[:contents])
     @remote_id = params[:name]
@@ -173,7 +173,7 @@ class TestFileResource < BaseResource
 end
 
 # description of a resource
-class TestFileResourceDesc < BaseResourceDesc
+class TestFileResourceDesc < Tataru::BaseResourceDesc
   def resource_class
     TestFileResource
   end
@@ -204,7 +204,7 @@ class TestFileResourceDesc < BaseResourceDesc
 end
 
 # base class of resource
-class TestServerResource < BaseResource
+class TestServerResource < Tataru::BaseResource
   def create(params)
     @remote_id = TestEnvironment.instance.create_server(params[:size])
   end
@@ -245,7 +245,7 @@ class TestServerResource < BaseResource
 end
 
 # description of a resource
-class TestServerResourceDesc < BaseResourceDesc
+class TestServerResourceDesc < Tataru::BaseResourceDesc
   def resource_class
     TestServerResource
   end
@@ -276,7 +276,7 @@ class TestServerResourceDesc < BaseResourceDesc
 end
 
 # string joiner
-class StringJoinerResource < BaseResource
+class StringJoinerResource < Tataru::BaseResource
   attr_reader :remote_id
 
   def initialize(remote_id)
@@ -295,7 +295,7 @@ class StringJoinerResource < BaseResource
 end
 
 # description of a StringJoinerResource
-class StringJoinerResourceDesc < BaseResourceDesc
+class StringJoinerResourceDesc < Tataru::BaseResourceDesc
   def resource_class
     StringJoinerResource
   end
@@ -321,7 +321,7 @@ class StringJoinerResourceDesc < BaseResourceDesc
   end
 end
 
-class TestIpAddressResource < BaseResource
+class TestIpAddressResource < Tataru::BaseResource
   def create(params)
     ip = TestEnvironment.instance.create_ip(params[:server_id])
     @remote_id = ip 
@@ -363,7 +363,7 @@ class TestIpAddressResource < BaseResource
   end
 end
 
-class TestIpAddressResourceDesc < BaseResourceDesc
+class TestIpAddressResourceDesc < Tataru::BaseResourceDesc
   def resource_class
     TestIpAddressResource
   end
@@ -393,21 +393,21 @@ class TestIpAddressResourceDesc < BaseResourceDesc
   end
 end
 
-describe Tataru do
+describe Tataru::Quest do
   it 'builds one resource' do
     TestEnvironment.instance.clear!
 
-    rtp = ResourceTypePool.new
+    rtp = Tataru::ResourceTypePool.new
     rtp.add_resource_desc(:file, TestFileResourceDesc)
-    ttr = Tataru.new(rtp)
+    ttr = Tataru::Quest.new(rtp)
     ttr.construct do
       resource :file, 'file' do
         name 'something1.txt'
         contents '123'
       end
     end
-    ih = InstructionHash.new(ttr.instr_hash)
-    runner = Runner.new(ih.instruction_list)
+    ih = Tataru::InstructionHash.new(ttr.instr_hash)
+    runner = Tataru::Runner.new(ih.instruction_list)
     travel_to Time.new(2011, 1, 1, 0, 0, 0, '+00:00') do
       loop do
         runner.run_next
@@ -438,7 +438,7 @@ describe Tataru do
       }
     }
 
-    rtp = ResourceTypePool.new
+    rtp = Tataru::ResourceTypePool.new
     rtp.add_resource_desc(:file, TestFileResourceDesc)
     remote_ids = {
       'file1' => {
@@ -448,7 +448,7 @@ describe Tataru do
       }
     }
 
-    ttr = Tataru.new(rtp, remote_ids)
+    ttr = Tataru::Quest.new(rtp, remote_ids)
     ttr.construct do
       resource :file, 'file2' do
         name 'something2.txt'
@@ -456,8 +456,8 @@ describe Tataru do
       end
     end
 
-    ih = InstructionHash.new(ttr.instr_hash)
-    runner = Runner.new(ih.instruction_list)
+    ih = Tataru::InstructionHash.new(ttr.instr_hash)
+    runner = Tataru::Runner.new(ih.instruction_list)
 
     travel_to Time.new(2011, 1, 1, 0, 0, 0, '+00:00') do
       loop do
@@ -488,7 +488,7 @@ describe Tataru do
       }
     ]
 
-    rtp = ResourceTypePool.new
+    rtp = Tataru::ResourceTypePool.new
     rtp.add_resource_desc(:file, TestFileResourceDesc)
     rtp.add_resource_desc(:server, TestServerResourceDesc)
     remote_ids = {
@@ -499,7 +499,7 @@ describe Tataru do
       }
     }
 
-    ttr = Tataru.new(rtp, remote_ids)
+    ttr = Tataru::Quest.new(rtp, remote_ids)
     ttr.construct do
       s = resource :server, 'serv' do
         size 'SMOL'
@@ -511,8 +511,8 @@ describe Tataru do
       end
     end
 
-    ih = InstructionHash.new(ttr.instr_hash)
-    runner = Runner.new(ih.instruction_list)
+    ih = Tataru::InstructionHash.new(ttr.instr_hash)
+    runner = Tataru::Runner.new(ih.instruction_list)
 
     travel_to Time.new(2015, 1, 1, 0, 0, 0, '+00:00') do
       loop do
@@ -545,7 +545,7 @@ describe Tataru do
       }
     }
 
-    rtp = ResourceTypePool.new
+    rtp = Tataru::ResourceTypePool.new
     rtp.add_resource_desc(:file, TestFileResourceDesc)
     remote_ids = {
       'file' => {
@@ -555,7 +555,7 @@ describe Tataru do
       }
     }
 
-    ttr = Tataru.new(rtp, remote_ids)
+    ttr = Tataru::Quest.new(rtp, remote_ids)
     ttr.construct do
       resource :file, 'file' do
         name 'ddd.txt'
@@ -563,8 +563,8 @@ describe Tataru do
       end
     end
 
-    ih = InstructionHash.new(ttr.instr_hash)
-    runner = Runner.new(ih.instruction_list)
+    ih = Tataru::InstructionHash.new(ttr.instr_hash)
+    runner = Tataru::Runner.new(ih.instruction_list)
 
     travel_to Time.new(2011, 1, 1, 0, 0, 0, '+00:00') do
       loop do
@@ -598,7 +598,7 @@ describe Tataru do
       }
     }
 
-    rtp = ResourceTypePool.new
+    rtp = Tataru::ResourceTypePool.new
     rtp.add_resource_desc(:file, TestFileResourceDesc)
     remote_ids = {
       'file' => {
@@ -608,7 +608,7 @@ describe Tataru do
       }
     }
 
-    ttr = Tataru.new(rtp, remote_ids)
+    ttr = Tataru::Quest.new(rtp, remote_ids)
     ttr.construct do
       resource :file, 'file' do
         name 'fff.txt'
@@ -616,8 +616,8 @@ describe Tataru do
       end
     end
 
-    ih = InstructionHash.new(ttr.instr_hash)
-    runner = Runner.new(ih.instruction_list)
+    ih = Tataru::InstructionHash.new(ttr.instr_hash)
+    runner = Tataru::Runner.new(ih.instruction_list)
 
     travel_to Time.new(2011, 1, 1, 0, 0, 0, '+00:00') do
       loop do
@@ -652,7 +652,7 @@ describe Tataru do
       '2.3.4.2' => 'server0'
     }
 
-    rtp = ResourceTypePool.new
+    rtp = Tataru::ResourceTypePool.new
     rtp.add_resource_desc(:ip_address, TestIpAddressResourceDesc)
     rtp.add_resource_desc(:server, TestServerResourceDesc)
     remote_ids = {
@@ -668,7 +668,7 @@ describe Tataru do
       }
     }
 
-    ttr = Tataru.new(rtp, remote_ids)
+    ttr = Tataru::Quest.new(rtp, remote_ids)
     ttr.construct do
       s = resource :server, 'serv' do
         size 'B'
@@ -679,10 +679,8 @@ describe Tataru do
       end
     end
 
-    ih = InstructionHash.new(ttr.instr_hash)
-    runner = Runner.new(ih.instruction_list)
-
-    puts ttr.instr_hash.to_yaml
+    ih = Tataru::InstructionHash.new(ttr.instr_hash)
+    runner = Tataru::Runner.new(ih.instruction_list)
 
     travel_to Time.new(2015, 1, 1, 0, 0, 0, '+00:00') do
       loop do
@@ -712,11 +710,11 @@ describe Tataru do
   it 'builds multiple resources' do
     TestEnvironment.instance.clear!
 
-    rtp = ResourceTypePool.new
+    rtp = Tataru::ResourceTypePool.new
     rtp.add_resource_desc(:file, TestFileResourceDesc)
     rtp.add_resource_desc(:string_joiner, StringJoinerResourceDesc)
 
-    ttr = Tataru.new(rtp)
+    ttr = Tataru::Quest.new(rtp)
     ttr.construct do
       r1 = resource :file, 'f1' do
         name 'something1.txt'
@@ -737,8 +735,8 @@ describe Tataru do
         contents sj.result
       end
     end
-    ih = InstructionHash.new(ttr.instr_hash)
-    runner = Runner.new(ih.instruction_list)
+    ih = Tataru::InstructionHash.new(ttr.instr_hash)
+    runner = Tataru::Runner.new(ih.instruction_list)
 
     #puts ttr.instr_hash.to_yaml
     travel_to Time.new(2012, 1, 1, 0, 0, 0, '+00:00') do
@@ -747,6 +745,7 @@ describe Tataru do
         break if runner.ended?
       end
     end
+
     expect(runner.memory.error).to be_nil
 
     expect(TestEnvironment.instance.file('something1.txt')).to include(

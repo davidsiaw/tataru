@@ -2,10 +2,10 @@
 
 require 'tataru'
 
-describe InitInstruction do
+describe Tataru::Instructions::InitInstruction do
   it 'sets hashes' do
-    instr = InitInstruction.new
-    mem = Memory.new
+    instr = Tataru::Instructions::InitInstruction.new
+    mem = Tataru::Memory.new
     instr.memory = mem
     instr.run
     expect(mem.hash.key? :remote_ids).to eq true

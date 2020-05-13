@@ -2,15 +2,15 @@
 
 require 'tataru'
 
-describe RescmpInstruction do
+describe Tataru::Instructions::RescmpInstruction do
   # compares temp with rom properties
   # sets no_change, update, recreate
 
   it 'sets temp result to no_change if there are no changes' do
-    mem = Memory.new
-    instr = RescmpInstruction.new
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::RescmpInstruction.new
 
-    allow_any_instance_of(BaseResourceDesc).to receive(:mutable_fields) { [:prop] }
+    allow_any_instance_of(Tataru::BaseResourceDesc).to receive(:mutable_fields) { [:prop] }
 
     mem.hash[:rom] = {
       'thing' => {
@@ -27,7 +27,7 @@ describe RescmpInstruction do
 
     mem.hash[:temp] = {
       resource_name: 'thing',
-      resource_desc: 'BaseResourceDesc',
+      resource_desc: 'Tataru::BaseResourceDesc',
       'thing' => {
         prop: 'info'
       }
@@ -42,10 +42,10 @@ describe RescmpInstruction do
   end
 
   it 'sets temp result to modify if there are changes to mutable' do
-    mem = Memory.new
-    instr = RescmpInstruction.new
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::RescmpInstruction.new
 
-    allow_any_instance_of(BaseResourceDesc).to receive(:mutable_fields) { [:prop] }
+    allow_any_instance_of(Tataru::BaseResourceDesc).to receive(:mutable_fields) { [:prop] }
 
     mem.hash[:rom] = {
       'thing' => {
@@ -62,7 +62,7 @@ describe RescmpInstruction do
 
     mem.hash[:temp] = {
       resource_name: 'thing',
-      resource_desc: 'BaseResourceDesc',
+      resource_desc: 'Tataru::BaseResourceDesc',
       'thing' => {
         prop: 'BBBB'
       }
@@ -77,10 +77,10 @@ describe RescmpInstruction do
   end
 
   it 'sets temp result to recreate if there are changes to immutable' do
-    mem = Memory.new
-    instr = RescmpInstruction.new
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::RescmpInstruction.new
 
-    allow_any_instance_of(BaseResourceDesc).to receive(:immutable_fields) { [:prop] }
+    allow_any_instance_of(Tataru::BaseResourceDesc).to receive(:immutable_fields) { [:prop] }
 
     mem.hash[:rom] = {
       'thing' => {
@@ -97,7 +97,7 @@ describe RescmpInstruction do
 
     mem.hash[:temp] = {
       resource_name: 'thing',
-      resource_desc: 'BaseResourceDesc',
+      resource_desc: 'Tataru::BaseResourceDesc',
       'thing' => {
         prop: 'BBNBB'
       }

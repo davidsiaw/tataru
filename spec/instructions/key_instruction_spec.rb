@@ -2,10 +2,10 @@
 
 require 'tataru'
 
-describe KeyInstruction do
+describe Tataru::Instructions::KeyInstruction do
   it 'set a key' do
-    mem = Memory.new
-    instr = KeyInstruction.new('meow')
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::KeyInstruction.new('meow')
 
     instr.memory = mem
     instr.run

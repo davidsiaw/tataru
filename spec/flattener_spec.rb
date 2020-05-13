@@ -2,9 +2,9 @@
 
 require 'tataru'
 
-describe Flattener do
+describe Tataru::Flattener do
   it 'flattens literals' do
-    f = Flattener.new(LiteralRepresentation.new('meow'))
+    f = Tataru::Flattener.new(Tataru::Representations::LiteralRepresentation.new('meow'))
     expect(f.flattened).to eq(
       top: {
         type: :literal,
@@ -14,7 +14,7 @@ describe Flattener do
   end
 
   it 'flattens arrays' do
-    f = Flattener.new(ArrayRepresentation.new(['meow']))
+    f = Tataru::Flattener.new(Tataru::Representations::ArrayRepresentation.new(['meow']))
     expect(f.flattened).to eq(
       top: {
         type: :array,
@@ -30,7 +30,7 @@ describe Flattener do
   end
 
   it 'flattens hashes' do
-    f = Flattener.new(HashRepresentation.new({somefield: 'somevalue'}))
+    f = Tataru::Flattener.new(Tataru::Representations::HashRepresentation.new({somefield: 'somevalue'}))
     expect(f.flattened).to eq(
       top: {
         type: :hash,
@@ -46,7 +46,7 @@ describe Flattener do
   end
 
   it 'flattens resources' do
-    f = Flattener.new(ResourceRepresentation.new('thing', BaseResourceDesc.new, {}))
+    f = Tataru::Flattener.new(Tataru::Representations::ResourceRepresentation.new('thing', Tataru::BaseResourceDesc.new, {}))
     expect(f.flattened).to eq(
       top: {
         type: :hash,
@@ -56,7 +56,7 @@ describe Flattener do
   end
 
   it 'flattens outputs' do
-    f = Flattener.new(OutputRepresentation.new('employee', 'age'))
+    f = Tataru::Flattener.new(Tataru::Representations::OutputRepresentation.new('employee', 'age'))
     expect(f.flattened).to eq(
       top: {
         type: :output,
@@ -67,10 +67,10 @@ describe Flattener do
   end
 
   it 'flattens resources that have properties' do
-    f = Flattener.new(ResourceRepresentation.new(
+    f = Tataru::Flattener.new(Tataru::Representations::ResourceRepresentation.new(
       'thing',
-      BaseResourceDesc.new,
-      { somefield: LiteralRepresentation.new('somevalue') }
+      Tataru::BaseResourceDesc.new,
+      { somefield: Tataru::Representations::LiteralRepresentation.new('somevalue') }
     ))
     expect(f.flattened).to eq(
       top: {

@@ -2,33 +2,33 @@
 
 require 'tataru'
 
-describe UpdateInstruction do
+describe Tataru::Instructions::UpdateInstruction do
   it 'calls update' do
-    mem = Memory.new
-    instr = UpdateInstruction.new
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::UpdateInstruction.new
 
     mem.hash[:temp] = {
       resource_name: 'thing',
-      resource_desc: 'BaseResourceDesc',
+      resource_desc: 'Tataru::BaseResourceDesc',
       properties: { 'someprop' => 'somevalue' }
     }
 
     mem.hash[:remote_ids] = { 'thing' => 'hello' }
     instr.memory = mem
-    expect_any_instance_of(BaseResource).to receive(:update).with('someprop' => 'somevalue')
+    expect_any_instance_of(Tataru::BaseResource).to receive(:update).with('someprop' => 'somevalue')
     
     instr.run
   end
 
   xit 'should throw error if an immutable prop is changed' do
-    mem = Memory.new
-    instr = UpdateInstruction.new
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::UpdateInstruction.new
 
-    expect_any_instance_of(BaseResourceDesc).to receive(:immutable_fields) { ['someprop'] }
+    expect_any_instance_of(Tataru::BaseResourceDesc).to receive(:immutable_fields) { ['someprop'] }
 
     mem.hash[:temp] = {
       resource_name: 'thing',
-      resource_desc: 'BaseResourceDesc',
+      resource_desc: 'Tataru::BaseResourceDesc',
       properties: { 'someprop' => 'somevalue' }
     }
     mem.hash[:remote_ids] = { 'thing' => 'hello' }

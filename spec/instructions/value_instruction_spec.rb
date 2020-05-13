@@ -2,10 +2,10 @@
 
 require 'tataru'
 
-describe ValueInstruction do
+describe Tataru::Instructions::ValueInstruction do
   it 'set a value' do
-    mem = Memory.new
-    instr = ValueInstruction.new('something')
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::ValueInstruction.new('something')
 
     mem.hash[:temp] = { _key: :somefield }
     instr.memory = mem
@@ -15,8 +15,8 @@ describe ValueInstruction do
   end
 
   it 'returns an error if no key' do
-    mem = Memory.new
-    instr = ValueInstruction.new('something')
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::ValueInstruction.new('something')
 
     mem.hash[:temp] = {}
     instr.memory = mem

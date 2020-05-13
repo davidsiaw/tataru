@@ -2,27 +2,27 @@
 
 require 'tataru'
 
-describe ArrayRepresentation do
+describe Tataru::Representations::ArrayRepresentation do
   it 'has no dependencies for empty array' do
-    rep = ArrayRepresentation.new([])
+    rep = Tataru::Representations::ArrayRepresentation.new([])
     expect(rep.dependencies).to eq []
   end
 
   it 'has no dependencies for array with only literals' do
-    rep = ArrayRepresentation.new(['hi'])
+    rep = Tataru::Representations::ArrayRepresentation.new(['hi'])
     expect(rep.dependencies).to eq []
   end
 
   it 'has dependencies for each resource' do
-    rr = ResourceRepresentation.new('file', BaseResourceDesc.new, {})
-    rep = ArrayRepresentation.new([rr])
+    rr = Tataru::Representations::ResourceRepresentation.new('file', Tataru::BaseResourceDesc.new, {})
+    rep = Tataru::Representations::ArrayRepresentation.new([rr])
     expect(rep.dependencies).to eq ['file']
   end
 
   it 'has dependencies for every resource' do
-    rr1 = ResourceRepresentation.new('file1', BaseResourceDesc.new, {})
-    rr2 = ResourceRepresentation.new('file2', BaseResourceDesc.new, {})
-    rep = ArrayRepresentation.new([rr1, rr2, 'awd'])
+    rr1 = Tataru::Representations::ResourceRepresentation.new('file1', Tataru::BaseResourceDesc.new, {})
+    rr2 = Tataru::Representations::ResourceRepresentation.new('file2', Tataru::BaseResourceDesc.new, {})
+    rep = Tataru::Representations::ArrayRepresentation.new([rr1, rr2, 'awd'])
 
     expect(rep.dependencies).to eq ['file1', 'file2']
   end

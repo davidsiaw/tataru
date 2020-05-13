@@ -2,22 +2,22 @@
 
 require 'tataru'
 
-describe ReadInstruction do
+describe Tataru::Instructions::ReadInstruction do
   it 'sets hashes' do
-    mem = Memory.new
-    instr = ReadInstruction.new
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::ReadInstruction.new
 
     mem.hash[:temp] = {
       resource_name: 'thing',
-      resource_desc: 'BaseResourceDesc'
+      resource_desc: 'Tataru::BaseResourceDesc'
     }
     mem.hash[:remote_ids] = { 'thing' => 'hello' }
     instr.memory = mem
 
-    expect_any_instance_of(BaseResourceDesc).to receive(:immutable_fields) { [:prop1] }
-    expect_any_instance_of(BaseResourceDesc).to receive(:mutable_fields) { [:prop2] }
+    expect_any_instance_of(Tataru::BaseResourceDesc).to receive(:immutable_fields) { [:prop1] }
+    expect_any_instance_of(Tataru::BaseResourceDesc).to receive(:mutable_fields) { [:prop2] }
 
-    expect_any_instance_of(BaseResource).to receive(:read).with([:prop1, :prop2]) do
+    expect_any_instance_of(Tataru::BaseResource).to receive(:read).with([:prop1, :prop2]) do
       {
         prop1: 'info',
         prop2: '1234',

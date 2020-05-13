@@ -2,42 +2,42 @@
 
 require 'tataru'
 
-describe CheckDeleteInstruction do
+describe Tataru::Instructions::CheckDeleteInstruction do
   it 'reverses program counter if not completed' do
-    mem = Memory.new
-    instr = CheckDeleteInstruction.new
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::CheckDeleteInstruction.new
 
     expect(mem.program_counter).to eq 0
 
     mem.hash[:temp] = {
       resource_name: 'thing',
-      resource_desc: 'BaseResourceDesc'
+      resource_desc: 'Tataru::BaseResourceDesc'
     }
     mem.hash[:remote_ids] = { 'thing' => 'hello' }
     instr.memory = mem
 
-    allow_any_instance_of(BaseResource).to receive(:delete_complete?) { false }
+    allow_any_instance_of(Tataru::BaseResource).to receive(:delete_complete?) { false }
     instr.run
 
     expect(mem.program_counter).to eq -1
   end
 
   it 'sets deleted' do
-    mem = Memory.new
-    instr = CheckDeleteInstruction.new
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::CheckDeleteInstruction.new
 
     expect(mem.program_counter).to eq 0
 
     mem.hash[:temp] = {
       resource_name: 'thing',
-      resource_desc: 'BaseResourceDesc'
+      resource_desc: 'Tataru::BaseResourceDesc'
     }
     mem.hash[:remote_ids] = { 'thing' => 'hello' }
     mem.hash[:deleted] = []
     instr.memory = mem
 
-    allow_any_instance_of(BaseResource).to receive(:delete_complete?) { true }
-    allow_any_instance_of(BaseResourceDesc).to receive(:needs_remote_id?) { true }
+    allow_any_instance_of(Tataru::BaseResource).to receive(:delete_complete?) { true }
+    allow_any_instance_of(Tataru::BaseResourceDesc).to receive(:needs_remote_id?) { true }
     instr.run
 
     expect(mem.hash[:deleted]).to eq ['thing']

@@ -2,10 +2,10 @@
 
 require 'tataru'
 
-describe Compiler do
+describe Tataru::Compiler do
   it 'outputs the correct default format' do
-    dsl = TopDsl.new(ResourceTypePool.new)
-    compiler = Compiler.new(dsl)
+    dsl = Tataru::TopDsl.new(Tataru::ResourceTypePool.new)
+    compiler = Tataru::Compiler.new(dsl)
     expect(compiler.instr_hash).to eq(
       init: {
         labels: {},
@@ -17,8 +17,8 @@ describe Compiler do
   end
 
   it 'outputs top instructions and subroutine instructions' do
-    dsl = TopDsl.new(ResourceTypePool.new)
-    compiler = Compiler.new(dsl)
+    dsl = Tataru::TopDsl.new(Tataru::ResourceTypePool.new)
+    compiler = Tataru::Compiler.new(dsl)
 
     allow(compiler).to receive(:top_instructions) { [:meow] }
     allow(compiler).to receive(:subroutine_instructions) { [:woof] }
@@ -34,8 +34,8 @@ describe Compiler do
   end
 
   it 'wraps instructions with init and end' do
-    dsl = TopDsl.new(ResourceTypePool.new)
-    compiler = Compiler.new(dsl)
+    dsl = Tataru::TopDsl.new(Tataru::ResourceTypePool.new)
+    compiler = Tataru::Compiler.new(dsl)
 
     allow(compiler).to receive(:generate_top_instructions) { [:meow] }
     
@@ -43,8 +43,8 @@ describe Compiler do
   end
 
   it 'makes all the subroutine instructions mixed in' do
-    dsl = TopDsl.new(ResourceTypePool.new)
-    compiler = Compiler.new(dsl)
+    dsl = Tataru::TopDsl.new(Tataru::ResourceTypePool.new)
+    compiler = Tataru::Compiler.new(dsl)
 
     a = double('SubroutineCompiler')
     b = double('SubroutineCompiler')
@@ -57,8 +57,8 @@ describe Compiler do
   end
 
   it 'assigns the correct numbers to labels' do
-    dsl = TopDsl.new(ResourceTypePool.new)
-    compiler = Compiler.new(dsl)
+    dsl = Tataru::TopDsl.new(Tataru::ResourceTypePool.new)
+    compiler = Tataru::Compiler.new(dsl)
 
     a = double('SubroutineCompiler')
     b = double('SubroutineCompiler')
@@ -75,8 +75,8 @@ describe Compiler do
   end
 
   it 'generates the right subroutines' do
-    dsl = TopDsl.new(ResourceTypePool.new)
-    compiler = Compiler.new(dsl)
+    dsl = Tataru::TopDsl.new(Tataru::ResourceTypePool.new)
+    compiler = Tataru::Compiler.new(dsl)
 
     dummy = double('SubroutineCompiler')
     allow(dummy).to receive(:call_instruction)
@@ -105,11 +105,11 @@ describe Compiler do
   end
 
   it 'generates create instructions by default' do
-    dsl = TopDsl.new(ResourceTypePool.new)
-    compiler = Compiler.new(dsl)
+    dsl = Tataru::TopDsl.new(Tataru::ResourceTypePool.new)
+    compiler = Tataru::Compiler.new(dsl)
 
-    cat = ResourceRepresentation.new('ccat', BaseResourceDesc.new, {})
-    dog = ResourceRepresentation.new('ddog', BaseResourceDesc.new, {})
+    cat = Tataru::Representations::ResourceRepresentation.new('ccat', Tataru::BaseResourceDesc.new, {})
+    dog = Tataru::Representations::ResourceRepresentation.new('ddog', Tataru::BaseResourceDesc.new, {})
     allow(dsl).to receive(:resources) do
       {
         'cat' => cat,
@@ -117,17 +117,17 @@ describe Compiler do
       }
     end
 
-    expect(SubroutineCompiler).to receive(:new).with(cat, :create)
-    expect(SubroutineCompiler).to receive(:new).with(cat, :check_create)
+    expect(Tataru::SubroutineCompiler).to receive(:new).with(cat, :create)
+    expect(Tataru::SubroutineCompiler).to receive(:new).with(cat, :check_create)
 
-    expect(SubroutineCompiler).to receive(:new).with(cat, :commit_create)
-    expect(SubroutineCompiler).to receive(:new).with(cat, :finish_create)
+    expect(Tataru::SubroutineCompiler).to receive(:new).with(cat, :commit_create)
+    expect(Tataru::SubroutineCompiler).to receive(:new).with(cat, :finish_create)
 
-    expect(SubroutineCompiler).to receive(:new).with(dog, :create)
-    expect(SubroutineCompiler).to receive(:new).with(dog, :check_create)
+    expect(Tataru::SubroutineCompiler).to receive(:new).with(dog, :create)
+    expect(Tataru::SubroutineCompiler).to receive(:new).with(dog, :check_create)
 
-    expect(SubroutineCompiler).to receive(:new).with(dog, :commit_create)
-    expect(SubroutineCompiler).to receive(:new).with(dog, :finish_create)
+    expect(Tataru::SubroutineCompiler).to receive(:new).with(dog, :commit_create)
+    expect(Tataru::SubroutineCompiler).to receive(:new).with(dog, :finish_create)
 
     expect(compiler.generate_subroutines.keys).to eq [
       'ccat_start', 'ccat_check', 'ccat_commit', 'ccat_finish',
@@ -136,13 +136,13 @@ describe Compiler do
   end
 
   it 'generates delete instructions for extant names' do
-    dsl = TopDsl.new(ResourceTypePool.new)
-    compiler = Compiler.new(dsl, { 'thing' => 'BaseResourceDesc' })
+    dsl = Tataru::TopDsl.new(Tataru::ResourceTypePool.new)
+    compiler = Tataru::Compiler.new(dsl, { 'thing' => 'BaseResourceDesc' })
 
-    expect(SubroutineCompiler).to receive(:new).with(instance_of(ResourceRepresentation), :delete)
-    expect(SubroutineCompiler).to receive(:new).with(instance_of(ResourceRepresentation), :check_delete)
-    expect(SubroutineCompiler).to receive(:new).with(instance_of(ResourceRepresentation), :commit_delete)
-    expect(SubroutineCompiler).to receive(:new).with(instance_of(ResourceRepresentation), :finish_delete)
+    expect(Tataru::SubroutineCompiler).to receive(:new).with(instance_of(Tataru::Representations::ResourceRepresentation), :delete)
+    expect(Tataru::SubroutineCompiler).to receive(:new).with(instance_of(Tataru::Representations::ResourceRepresentation), :check_delete)
+    expect(Tataru::SubroutineCompiler).to receive(:new).with(instance_of(Tataru::Representations::ResourceRepresentation), :commit_delete)
+    expect(Tataru::SubroutineCompiler).to receive(:new).with(instance_of(Tataru::Representations::ResourceRepresentation), :finish_delete)
 
     expect(compiler.generate_subroutines.keys).to eq [
       'thing_start', 'thing_check', 'thing_commit', 'thing_finish'
@@ -150,26 +150,26 @@ describe Compiler do
   end
 
   it 'generates update instructions for extant names that are set' do
-    dsl = TopDsl.new(ResourceTypePool.new)
-    compiler = Compiler.new(dsl, { 'thong' => 'BaseResourceDesc' })
+    dsl = Tataru::TopDsl.new(Tataru::ResourceTypePool.new)
+    compiler = Tataru::Compiler.new(dsl, { 'thong' => 'BaseResourceDesc' })
 
-    dog = ResourceRepresentation.new('ddog', BaseResourceDesc.new, {})
+    dog = Tataru::Representations::ResourceRepresentation.new('ddog', Tataru::BaseResourceDesc.new, {})
     allow(dsl).to receive(:resources) do
       {
         'thong' => dog
       }
     end
 
-    expect(SubroutineCompiler).to receive(:new).with(dog, :update)
-    expect(SubroutineCompiler).to receive(:new).with(dog, :check_update)
-    expect(SubroutineCompiler).to receive(:new).with(dog, :commit_update)
-    expect(SubroutineCompiler).to receive(:new).with(dog, :finish_update)
-    expect(SubroutineCompiler).to receive(:new).with(dog, :modify)
-    expect(SubroutineCompiler).to receive(:new).with(dog, :modify_check)
-    expect(SubroutineCompiler).to receive(:new).with(dog, :recreate)
-    expect(SubroutineCompiler).to receive(:new).with(dog, :recreate_check)
-    expect(SubroutineCompiler).to receive(:new).with(dog, :recreate_commit)
-    expect(SubroutineCompiler).to receive(:new).with(dog, :recreate_finish)
+    expect(Tataru::SubroutineCompiler).to receive(:new).with(dog, :update)
+    expect(Tataru::SubroutineCompiler).to receive(:new).with(dog, :check_update)
+    expect(Tataru::SubroutineCompiler).to receive(:new).with(dog, :commit_update)
+    expect(Tataru::SubroutineCompiler).to receive(:new).with(dog, :finish_update)
+    expect(Tataru::SubroutineCompiler).to receive(:new).with(dog, :modify)
+    expect(Tataru::SubroutineCompiler).to receive(:new).with(dog, :modify_check)
+    expect(Tataru::SubroutineCompiler).to receive(:new).with(dog, :recreate)
+    expect(Tataru::SubroutineCompiler).to receive(:new).with(dog, :recreate_check)
+    expect(Tataru::SubroutineCompiler).to receive(:new).with(dog, :recreate_commit)
+    expect(Tataru::SubroutineCompiler).to receive(:new).with(dog, :recreate_finish)
 
     expect(compiler.generate_subroutines.keys).to eq [
       'ddog_start', 'ddog_check', 'ddog_commit', 'ddog_finish',

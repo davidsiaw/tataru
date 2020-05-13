@@ -2,10 +2,10 @@
 
 require 'tataru'
 
-describe ReturnInstruction do
+describe Tataru::Instructions::ReturnInstruction do
   it 'return to top of stack' do
-    mem = Memory.new
-    instr = ReturnInstruction.new
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::ReturnInstruction.new
 
     mem.call_stack = [1, 2, 3]
     instr.memory = mem
@@ -15,9 +15,9 @@ describe ReturnInstruction do
   end
 
   it 'sets error if no more stack' do
-    mem = Memory.new
+    mem = Tataru::Memory.new
     mem.call_stack = []
-    instr = ReturnInstruction.new
+    instr = Tataru::Instructions::ReturnInstruction.new
 
     instr.memory = mem
     instr.run

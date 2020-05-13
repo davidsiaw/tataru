@@ -2,10 +2,10 @@
 
 require 'tataru'
 
-describe ClearInstruction do
+describe Tataru::Instructions::ClearInstruction do
   it 'clears temp' do
-    mem = Memory.new
-    instr = ClearInstruction.new
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::ClearInstruction.new
 
     mem.hash[:temp] = { something: 'haha' }
     instr.memory = mem

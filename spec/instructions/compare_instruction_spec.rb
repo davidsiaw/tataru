@@ -2,10 +2,10 @@
 
 require 'tataru'
 
-describe CompareInstruction do
+describe Tataru::Instructions::CompareInstruction do
   it 'sets to 1 if equal' do
-    mem = Memory.new
-    instr = CompareInstruction.new('abc')
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::CompareInstruction.new('abc')
 
     mem.hash[:temp] = { result: 'abc' }
 
@@ -16,8 +16,8 @@ describe CompareInstruction do
   end
 
   it 'sets to 0 if not equal' do
-    mem = Memory.new
-    instr = CompareInstruction.new('def')
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::CompareInstruction.new('def')
 
     mem.hash[:temp] = { result: 'abc' }
 

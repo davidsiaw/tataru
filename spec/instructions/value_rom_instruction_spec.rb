@@ -2,10 +2,10 @@
 
 require 'tataru'
 
-describe ValueRomInstruction do
+describe Tataru::Instructions::ValueRomInstruction do
   it 'returns an error if no key' do
-    mem = Memory.new
-    instr = ValueRomInstruction.new('something')
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::ValueRomInstruction.new('something')
 
     mem.hash[:rom] = {}
     mem.hash[:temp] = {}
@@ -16,8 +16,8 @@ describe ValueRomInstruction do
   end
 
   it 'returns an error if no such thing' do
-    mem = Memory.new
-    instr = ValueRomInstruction.new('something')
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::ValueRomInstruction.new('something')
 
     mem.hash[:rom] = {}
     mem.hash[:temp] = { _key: :somefield }
@@ -26,8 +26,8 @@ describe ValueRomInstruction do
   end
 
   it 'sets a literal' do
-    mem = Memory.new
-    instr = ValueRomInstruction.new('something')
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::ValueRomInstruction.new('something')
 
     mem.hash[:rom] = {
       'something' => {
@@ -43,8 +43,8 @@ describe ValueRomInstruction do
   end
 
   it 'sets an array' do
-    mem = Memory.new
-    instr = ValueRomInstruction.new('something')
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::ValueRomInstruction.new('something')
 
     mem.hash[:rom] = {
       'something' => {
@@ -71,8 +71,8 @@ describe ValueRomInstruction do
   end
 
   it 'sets a hash' do
-    mem = Memory.new
-    instr = ValueRomInstruction.new('something')
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::ValueRomInstruction.new('something')
 
     mem.hash[:rom] = {
       'something' => {
@@ -102,8 +102,8 @@ describe ValueRomInstruction do
   end
 
   it 'sets an output' do
-    mem = Memory.new
-    instr = ValueRomInstruction.new('something')
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::ValueRomInstruction.new('something')
 
     mem.hash[:outputs] = {
       'someresource' => {
@@ -126,8 +126,8 @@ describe ValueRomInstruction do
   end
 
   it 'sets inner values' do
-    mem = Memory.new
-    instr = ValueRomInstruction.new('something')
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::ValueRomInstruction.new('something')
 
     mem.hash[:rom] = {
       'something' => {

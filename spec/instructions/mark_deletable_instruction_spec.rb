@@ -2,14 +2,14 @@
 
 require 'tataru'
 
-describe MarkDeletableInstruction do
+describe Tataru::Instructions::MarkDeletableInstruction do
   it 'set a resource as deletable' do
-    mem = Memory.new
-    instr = MarkDeletableInstruction.new
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::MarkDeletableInstruction.new
 
     mem.hash[:temp] = {
       resource_name: 'thing',
-      resource_desc: 'BaseResourceDesc'
+      resource_desc: 'Tataru::BaseResourceDesc'
     }
     mem.hash[:remote_ids] = { 'thing' => 'hello' }
     instr.memory = mem
