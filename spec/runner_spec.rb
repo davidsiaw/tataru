@@ -54,4 +54,46 @@ describe Tataru::Runner do
     expect(inst2).to receive(:run)
     runner.run_next
   end
+
+  it 'records resource instructions' do
+    inst1cls = Class.new(Tataru::Instructions::ResourceInstruction)
+    stub_const('TestInstruction', inst1cls)
+    inst1 = inst1cls.new
+
+
+    runner = Tataru::Runner.new([
+      inst1
+    ])
+
+    runner.memory.hash[:temp][:resource_name] = 'abcd'
+    runner.run_next
+
+    expect(runner.oplog).to eq [
+      {
+        operation: 'TEST',
+        resource: 'abcd'
+      }
+    ]
+  end
+
+  it 'ignores tataru instruction namespace' do
+    inst1cls = Class.new(Tataru::Instructions::ResourceInstruction)
+    stub_const('Tataru::Instructions::TestInstruction', inst1cls)
+    inst1 = inst1cls.new
+
+
+    runner = Tataru::Runner.new([
+      inst1
+    ])
+
+    runner.memory.hash[:temp][:resource_name] = 'defg'
+    runner.run_next
+
+    expect(runner.oplog).to eq [
+      {
+        operation: 'TEST',
+        resource: 'defg'
+      }
+    ]
+  end
 end

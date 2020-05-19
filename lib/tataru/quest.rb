@@ -3,6 +3,8 @@
 module Tataru
   # tataru
   class Quest
+    attr_reader :dsl
+
     def initialize(pool, current_state = {})
       @pool = pool
       @current_state = current_state

@@ -7,7 +7,7 @@ module Tataru
       def run
         if memory.call_stack.count.zero?
           return memory.error = 'At bottom of stack'
-    end
+        end
 
         memory.program_counter = memory.call_stack.pop
       end

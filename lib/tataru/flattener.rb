@@ -14,7 +14,10 @@ module Tataru
     end
 
     def flatten(value, name)
-      type = value.class.name.sub(/^Tataru::Representations::/, '').sub(/Representation$/, '').downcase
+      type = value.class.name
+                  .sub(/^Tataru::Representations::/, '')
+                  .sub(/Representation$/, '')
+                  .downcase
       method_name = :"flatten_#{type}"
       raise "cannot flatten #{value.inspect}" unless respond_to?(method_name)
 

@@ -3,6 +3,8 @@
 module Tataru
   # human representation of resources
   class ResourceDsl
+    REPCLASS = Tataru::Representations::ResourceRepresentation
+
     def initialize(name, desc)
       @properties = {}
       @desc = desc
@@ -20,7 +22,7 @@ module Tataru
 
       resolver = Resolver.new(args[0])
       @dependencies += resolver.dependencies
-      @properties[name] = if resolver.representation.is_a? Tataru::Representations::ResourceRepresentation
+      @properties[name] = if resolver.representation.is_a? REPCLASS
                             resolver.representation.remote_id
                           else
                             resolver.representation
@@ -28,7 +30,7 @@ module Tataru
     end
 
     def representation
-      Tataru::Representations::ResourceRepresentation.new(@name, @desc, @properties)
+      REPCLASS.new(@name, @desc, @properties)
     end
   end
 end

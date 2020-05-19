@@ -8,26 +8,32 @@ module Tataru
     end
 
     def representation
-      @representation ||= case @expression
-                          when String
-                            Representations::LiteralRepresentation.new(@expression)
-                          when Numeric
-                            Representations::LiteralRepresentation.new(@expression)
-                          when Array
-                            Representations::ArrayRepresentation.new(@expression)
-                          when Hash
-                            Representations::HashRepresentation.new(@expression)
-                          when Representations::ResourceRepresentation
-                            @expression
-                          when Representations::OutputRepresentation
-                            @expression
-                          else
-                            raise "invalid value: #{@expression.inspect}"
-                          end
+      @representation ||= generate_representation
     end
 
     def dependencies
       representation.dependencies
+    end
+
+    private
+
+    def generate_representation
+      case @expression
+      when String
+        Representations::LiteralRepresentation.new(@expression)
+      when Numeric
+        Representations::LiteralRepresentation.new(@expression)
+      when Array
+        Representations::ArrayRepresentation.new(@expression)
+      when Hash
+        Representations::HashRepresentation.new(@expression)
+      when Representations::ResourceRepresentation
+        @expression
+      when Representations::OutputRepresentation
+        @expression
+      else
+        raise "invalid value: #{@expression.inspect}"
+      end
     end
   end
 end

@@ -22,6 +22,7 @@ module Tataru
 
       oplog << {
         operation: instr.class.name.underscore
+                        .sub(%r{^tataru/instructions/}, '')
                         .sub(/_instruction$/, '').upcase.to_s,
         resource: (memory.hash[:temp][:resource_name]).to_s
       }
@@ -41,5 +42,7 @@ module Tataru
     rescue StandardError => e
       @memory.error = e
     end
+
+    def current_state; end
   end
 end
