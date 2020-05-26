@@ -27,6 +27,7 @@ module Tataru
   class Taru
     def initialize(rtp, current_state = {}, &block)
       @rtp = rtp
+      @current_state = current_state
       @quest = Tataru::Quest.new(rtp, current_state)
       @quest.construct(&block)
       @ih = Tataru::InstructionHash.new(@quest.instr_hash)
@@ -48,12 +49,25 @@ module Tataru
 
     def state
       @runner.memory.hash[:remote_ids].map do |k, v|
-        [k, {
-          name: v,
-          desc: @quest.dsl.resources[k].desc.class,
-          dependencies: @quest.dsl.dep_graph[k]
-        }]
+        extract_state(k, v)
       end.to_h
+    end
+
+    def extract_state(key, value)
+      if key.start_with? '_deletable_'
+        original_key = key.sub(/^_deletable_/, '')
+        [key, {
+          name: value,
+          desc: @current_state[original_key][:desc],
+          dependencies: @current_state[original_key][:dependencies]
+        }]
+      else
+        [key, {
+          name: value,
+          desc: @quest.dsl.resources[key].desc.class.name,
+          dependencies: @quest.dsl.dep_graph[key]
+        }]
+      end
     end
   end
 end
