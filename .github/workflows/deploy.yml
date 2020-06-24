@@ -1,20 +1,21 @@
-name: build
+name: deploy-docs
 
 on: [push]
 
 jobs:
   build:
     runs-on: ubuntu-16.04
-    strategy:
-      matrix:
-        ruby: [ '2.5', '2.6', '2.7' ]
-    name: Ruby ${{ matrix.ruby }}
+    name: deploy-docs
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-ruby@v1
         with:
-          ruby-version: ${{ matrix.ruby }}
+          ruby-version: 2.7
       - run: bundle install -j4
       - run: rubocop
       - run: rspec
       - run: bash deploy.bash
+      - uses: peaceiris/actions-gh-pages@v3
+        with:
+          deploy_key: ${{ secrets.DEPLOY_KEY }}
+          publish_dir: ./docs/build
