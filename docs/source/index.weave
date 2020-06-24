@@ -16,7 +16,7 @@ end
 
 
 center_page "404", "o...oh" do
-	h1 'Minfilia not found'
+	h1 '404'
 
-	h3 'She is in the other castle.'
+	h3 'Minfilia is in the other castle.'
 end
