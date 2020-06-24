@@ -17,4 +17,3 @@ jobs:
       - run: bundle install -j4
       - run: rubocop
       - run: rspec
-      - run: bash deploy.bash
