@@ -16,3 +16,4 @@ jobs:
           ruby-version: ${{ matrix.ruby }}
       - run: bundle install -j4
       - run: rspec
+      - run: rake build
