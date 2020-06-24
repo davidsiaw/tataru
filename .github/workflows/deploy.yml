@@ -11,9 +11,6 @@ jobs:
       - uses: actions/setup-ruby@v1
         with:
           ruby-version: 2.7
-      - run: bundle install -j4
-      - run: rubocop
-      - run: rspec
       - run: bash deploy-doc.bash
       - uses: peaceiris/actions-gh-pages@v3
         with:

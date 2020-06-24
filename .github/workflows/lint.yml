@@ -1,0 +1,15 @@
+name: lint
+
+on: [push]
+
+jobs:
+  lint:
+    runs-on: ubuntu-16.04
+    name: Lint
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-ruby@v1
+        with:
+          ruby-version: 2.7
+      - run: bundle install -j4
+      - run: rubocop

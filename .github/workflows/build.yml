@@ -15,5 +15,4 @@ jobs:
         with:
           ruby-version: ${{ matrix.ruby }}
       - run: bundle install -j4
-      - run: rubocop
       - run: rspec
