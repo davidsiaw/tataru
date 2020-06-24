@@ -7,6 +7,7 @@ fi
 
 cd docs
 
+bundle install -j4
 bundle exec weaver build -r https://tataru.astrobunny.net
 
 pushd build
