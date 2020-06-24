@@ -13,3 +13,10 @@ topnav_page "", "My first weaver page" do
 		end
 	end
 end
+
+
+center_page "404", "o...oh" do
+	h1 'Minfilia not found'
+
+	h3 'She is in the other castle.'
+end
