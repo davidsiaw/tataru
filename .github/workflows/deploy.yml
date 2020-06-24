@@ -14,7 +14,7 @@ jobs:
       - run: bundle install -j4
       - run: rubocop
       - run: rspec
-      - run: bash deploy.bash
+      - run: bash deploy-doc.bash
       - uses: peaceiris/actions-gh-pages@v3
         with:
           deploy_key: ${{ secrets.DEPLOY_KEY }}
