@@ -2,7 +2,4 @@
 
 source 'https://rubygems.org'
 
-gem 'activesupport'
-gem 'bunny-tsort'
-gem 'pry-byebug'
-gem 'rspec'
+gemspec
