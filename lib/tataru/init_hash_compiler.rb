@@ -22,9 +22,7 @@ module Tataru
         flattener = Flattener.new(v)
         flattener.flattened.each do |key, value|
           fixed = value.dup
-          if fixed[:references]
-            fixed[:references] = resolved_references(k, fixed[:references])
-          end
+          fixed[:references] = resolved_references(k, fixed[:references]) if fixed[:references]
           rom[key.to_s.sub(/^top/, k)] = fixed
         end
       end

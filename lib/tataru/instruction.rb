@@ -23,9 +23,7 @@ module Tataru
     def execute(memory)
       @memory = memory
       self.class.expected_params&.each do |symbol|
-        unless memory.hash[:temp].key? symbol
-          raise "required param #{symbol} not found"
-        end
+        raise "required param #{symbol} not found" unless memory.hash[:temp].key? symbol
       end
 
       run

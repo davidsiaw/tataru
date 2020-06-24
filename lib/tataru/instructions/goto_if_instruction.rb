@@ -15,9 +15,7 @@ module Tataru
       end
 
       def label_branch!
-        unless memory.hash[:labels]&.key?(@param)
-          raise "Label '#{@param}' not found"
-        end
+        raise "Label '#{@param}' not found" unless memory.hash[:labels]&.key?(@param)
 
         memory.hash[:labels][@param] - 1
       end

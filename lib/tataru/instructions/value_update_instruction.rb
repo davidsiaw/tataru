@@ -5,9 +5,7 @@ module Tataru
     # sets temp result
     class ValueUpdateInstruction < ImmediateModeInstruction
       def run
-        unless memory.hash[:update_action].key? @param
-          raise "No value set for '#{@param}'"
-        end
+        raise "No value set for '#{@param}'" unless memory.hash[:update_action].key? @param
 
         memory.hash[:temp] = {
           result: memory.hash[:update_action][@param]

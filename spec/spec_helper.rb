@@ -70,7 +70,6 @@ class TestEnvironment
     @files[name]
   end
 
-
   def create_server(size)
     id = @servers.count
     @servers[id] = {
@@ -85,9 +84,7 @@ class TestEnvironment
     raise "Nonexistent server '#{server_id}'" if @servers[id].nil?
 
     ip = @server_to_ip_map[server_id]
-    if ip != nil
-      raise "Cannot delete while connected to #{ip}"
-    end
+    raise "Cannot delete while connected to #{ip}" unless ip.nil?
 
     @servers[id] = nil
   end
@@ -121,14 +118,14 @@ class TestEnvironment
   def modify_ip(addr, server_id)
     id = server_id.sub(/^server/, '').to_i
     raise "Nonexistent server '#{server_id}'" if @servers[id].nil?
-    raise "Nonexistent IP #{addr}" if !@ip_addresses.key? addr
+    raise "Nonexistent IP #{addr}" unless @ip_addresses.key? addr
 
     @ip_addresses[addr] = server_id
     @server_to_ip_map[server_id] = addr
   end
 
   def delete_ip(addr)
-    raise "Nonexistent IP #{addr}" if !@ip_addresses.key? addr
+    raise "Nonexistent IP #{addr}" unless @ip_addresses.key? addr
 
     server_id = @ip_addresses[addr]
     @server_to_ip_map.delete(server_id)
@@ -198,7 +195,7 @@ class TestFileResourceDesc < Tataru::BaseResourceDesc
   end
 
   def output_fields
-    [:created_at, :updated_at]
+    %i[created_at updated_at]
   end
 
   def needs_remote_id?
@@ -224,8 +221,7 @@ class TestServerResource < Tataru::BaseResource
     results
   end
 
-  def update(params)
-  end
+  def update(params); end
 
   def delete
     TestEnvironment.instance.delete_server(@remote_id)
@@ -331,10 +327,10 @@ end
 class TestIpAddressResource < Tataru::BaseResource
   def create(params)
     ip = TestEnvironment.instance.create_ip(params[:server_id])
-    @remote_id = ip 
+    @remote_id = ip
   end
 
-  def read(name_array)
+  def read(_name_array)
     {
       server_id: TestEnvironment.instance.ip_addresses[@remote_id]
     }

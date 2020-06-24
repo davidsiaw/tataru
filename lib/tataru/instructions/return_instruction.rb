@@ -5,9 +5,7 @@ module Tataru
     # pops the callstack and goes back
     class ReturnInstruction < Instruction
       def run
-        if memory.call_stack.count.zero?
-          return memory.error = 'At bottom of stack'
-        end
+        return memory.error = 'At bottom of stack' if memory.call_stack.count.zero?
 
         memory.program_counter = memory.call_stack.pop
       end

@@ -32,9 +32,7 @@ module Tataru
 
     def instruction_for(action)
       instr_const = "#{action}_instruction".camelize
-      unless Tataru::Instructions.const_defined? instr_const
-        raise "Unknown instruction '#{action}'"
-      end
+      raise "Unknown instruction '#{action}'" unless Tataru::Instructions.const_defined? instr_const
 
       Tataru::Instructions.const_get(instr_const)
     end

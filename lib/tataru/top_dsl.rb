@@ -11,9 +11,7 @@ module Tataru
     end
 
     def resource(symbol, name, &block)
-      unless @pool.resource_desc_exist?(symbol)
-        raise "no such resource: #{symbol}"
-      end
+      raise "no such resource: #{symbol}" unless @pool.resource_desc_exist?(symbol)
       raise "already defined: #{name}" if @resources.key? name
 
       resource = ResourceDsl.new(name, @pool.resource_desc_for(symbol).new)
