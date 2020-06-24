@@ -20,12 +20,12 @@ Gem::Specification.new do |spec|
 
   spec.summary       = 'The greatest organizer'
   spec.description   = 'Tataru is a DSL for orchestrating the creation of resources'
-  spec.homepage      = 'https://github.com/davidsiaw/tataru'
+  spec.homepage      = 'https://tataru.astrobunny.net'
   spec.license       = 'MIT'
 
   spec.metadata['homepage_uri'] = spec.homepage
   spec.metadata['source_code_uri'] = 'https://github.com/davidsiaw/tataru'
-  spec.metadata['changelog_uri'] = 'https://github.com/davidsiaw/tataru'
+  spec.metadata['changelog_uri'] = 'https://github.com/davidsiaw/tataru/commits'
 
   spec.files = Dir['{exe,lib,bin}/**/*'] +
                %w[Gemfile tataru.gemspec]
