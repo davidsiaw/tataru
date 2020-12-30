@@ -9,6 +9,8 @@ module Tataru
       def run
         resource_class = desc.resource_class
         resource = resource_class.new(memory.hash[:remote_ids][resource_name])
+        raise 'immutable value changed' unless (desc.immutable_fields & properties.keys).empty?
+
         resource.update(properties)
       end
     end

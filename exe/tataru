@@ -1,0 +1,74 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'tataru'
+
+require 'json'
+require 'yaml'
+
+# tatarufile
+class Tatarufile
+  def initialize(cur_state, &block)
+    @cur_state = cur_state
+
+    sand = self
+    @desc = proc do
+      @sand = sand
+      define_singleton_method :use do |packname|
+        @sand.add_pack(packname, @sand.rtp)
+      end
+
+      instance_eval(&block)
+    end
+  end
+
+  def rtp
+    @rtp ||= Tataru::ResourceTypePool.new
+  end
+
+  def add_pack(packname, pool)
+    required = require "tatarupack/#{packname}"
+    raise "#{packname} not found" unless required
+
+    cap = packname.camelize
+    pack = Tatarupack.const_get(cap)
+    pack.list.each do |resname|
+      const = pack.const_get("#{resname}ResourceDesc")
+      pool.add_resource_desc("#{cap}::#{resname.camelize}", const)
+    end
+  end
+
+  def run
+    ttr = Tataru::Taru.new(rtp, @cur_state, &@desc)
+
+    loop do
+      break unless ttr.step
+
+      sleep 1 if ttr.oplog[-1] == ttr.oplog[-2] && ttr.oplog.length > 1
+    end
+
+    ttr
+  end
+end
+
+tatarufile = 'Tatarufile'
+statefile = "#{tatarufile}.state"
+
+cur_state = {}
+cur_state = YAML.load(File.read(statefile)) if File.exist?(statefile)
+
+ttr = Tatarufile.new(cur_state) do
+  instance_eval(File.read(tatarufile), tatarufile)
+end.run
+
+puts '-' * 20
+puts 'OPLOG'
+puts '-' * 20
+puts ttr.oplog
+
+puts '-' * 20
+puts 'ERRORS'
+puts '-' * 20
+p ttr.error
+
+File.write(statefile, ttr.state.to_yaml)

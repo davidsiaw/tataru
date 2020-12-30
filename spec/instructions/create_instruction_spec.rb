@@ -41,7 +41,25 @@ describe Tataru::Instructions::CreateInstruction do
     instr.run
   end
 
-  xit 'throws error if remote_id already set' do
+  it 'throws error if remote id is true but no remote id provided' do
+    mem = Tataru::Memory.new
+    instr = Tataru::Instructions::CreateInstruction.new
+
+    allow_any_instance_of(Tataru::BaseResourceDesc).to receive(:needs_remote_id?) { true }
+    expect_any_instance_of(Tataru::BaseResource).to receive(:create).with({ someprop: 'abc' })
+    allow_any_instance_of(Tataru::BaseResource).to receive(:remote_id) { nil }
+
+    mem.hash[:temp] = {
+      resource_name: 'thing',
+      resource_desc: 'Tataru::BaseResourceDesc',
+      properties: { someprop: 'abc' }
+    }
+    mem.hash[:remote_ids] = {}
+    instr.memory = mem
+    expect { instr.run }.to raise_error
+  end
+
+  it 'throws error if remote_id already set' do
     mem = Tataru::Memory.new
     instr = Tataru::Instructions::CreateInstruction.new
 

@@ -12,6 +12,8 @@ module Tataru
         resource.create(properties)
 
         return unless desc.needs_remote_id?
+        raise 'Resource expects a remote id but does not give one' if resource.remote_id.nil?
+        raise 'Remote id already set' unless memory.hash[:remote_ids][resource_name].nil?
 
         memory.hash[:remote_ids][resource_name] = resource.remote_id
       end

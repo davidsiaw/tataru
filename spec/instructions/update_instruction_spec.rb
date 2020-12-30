@@ -20,7 +20,7 @@ describe Tataru::Instructions::UpdateInstruction do
     instr.run
   end
 
-  xit 'should throw error if an immutable prop is changed' do
+  it 'should throw error if an immutable prop is changed' do
     mem = Tataru::Memory.new
     instr = Tataru::Instructions::UpdateInstruction.new
 
