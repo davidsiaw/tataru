@@ -219,6 +219,8 @@ describe Tataru::Taru do
     expect(ttr.oplog).to eq [
       {operation: 'READ', resource: 'file'},
       {operation: 'RESCMP', resource: 'file'},
+      {operation: 'READ', resource: 'file'},
+      {operation: 'FILTER', resource: 'file'},
       {operation: 'UPDATE', resource: 'file'},
       {operation: 'CHECK_UPDATE', resource: 'file'}
     ]
@@ -363,6 +365,8 @@ describe Tataru::Taru do
       {operation: 'CHECK_CREATE', resource: 'serv'},
       {operation: 'READ', resource: 'ip'},
       {operation: 'RESCMP', resource: 'ip'},
+      {operation: 'READ', resource: 'ip'},
+      {operation: 'FILTER', resource: 'ip'},
       {operation: 'UPDATE', resource: 'ip'},
       {operation: 'CHECK_UPDATE', resource: 'ip'},
       {operation: 'DELETE', resource: '_deletable_serv'},
@@ -536,6 +540,8 @@ describe Tataru::Taru do
       {operation: 'CHECK_CREATE', resource: 'serv'},
       {operation: 'READ', resource: 'ip'},
       {operation: 'RESCMP', resource: 'ip'},
+      {operation: 'READ', resource: 'ip'},
+      {operation: 'FILTER', resource: 'ip'},
       {operation: 'UPDATE', resource: 'ip'},
       {operation: 'CHECK_UPDATE', resource: 'ip'}
     ]

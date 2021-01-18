@@ -50,6 +50,10 @@ module Tataru
         *load_resource_instructions,
         { key: :properties },
         { value_rom: @rrep.name },
+        *load_resource_instructions,
+        :read,
+        *load_resource_instructions,
+        :filter,
         :update
       ]
     end
