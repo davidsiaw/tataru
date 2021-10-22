@@ -2,6 +2,7 @@
 
 require 'yaml'
 require 'pry'
+require 'singleton'
 require 'active_support/testing/time_helpers'
 require 'tataru'
 
