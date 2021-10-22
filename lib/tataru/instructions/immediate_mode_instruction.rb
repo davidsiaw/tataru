@@ -6,6 +6,7 @@ module Tataru
     class ImmediateModeInstruction < Instruction
       def initialize(param)
         @param = param
+        super()
       end
     end
   end

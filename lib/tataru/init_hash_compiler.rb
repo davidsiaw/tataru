@@ -8,9 +8,9 @@ module Tataru
     end
 
     def resolved_references(resource_name, references)
-      references.map do |field, refname|
-        [field, refname.to_s.sub(/^top/, resource_name)]
-      end.to_h
+      references.transform_values do |refname|
+        refname.to_s.sub(/^top/, resource_name)
+      end
     end
 
     def generate_init_hash

@@ -16,21 +16,21 @@ module Tataru
     end
 
     def extant_resources
-      @current_state.map do |resname, info|
-        [resname, info[:desc]]
-      end.to_h
+      @current_state.transform_values do |info|
+        info[:desc]
+      end
     end
 
     def remote_ids
-      @current_state.map do |resname, info|
-        [resname, info[:name]]
-      end.to_h
+      @current_state.transform_values do |info|
+        info[:name]
+      end
     end
 
     def extant_dependencies
-      @current_state.map do |resname, info|
-        [resname, info[:dependencies]]
-      end.to_h
+      @current_state.transform_values do |info|
+        info[:dependencies]
+      end
     end
 
     def instr_hash

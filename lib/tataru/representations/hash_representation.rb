@@ -5,9 +5,9 @@ module Tataru
     # representing hashes
     class HashRepresentation < Representation
       def initialize(value)
-        @value = value.map do |key, thing|
-          [key, Resolver.new(thing).representation]
-        end.to_h
+        super(@value = value.transform_values do |thing|
+          Resolver.new(thing).representation
+        end)
       end
 
       def dependencies

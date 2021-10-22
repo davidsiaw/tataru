@@ -283,10 +283,6 @@ end
 class StringJoinerResource < Tataru::BaseResource
   attr_reader :remote_id
 
-  def initialize(remote_id)
-    @remote_id = remote_id
-  end
-
   def create(params)
     @remote_id = params[:strings].join("\n")
   end

@@ -12,15 +12,18 @@ module Tataru
         @rom = {}
         @labels = {}
         @deleted = []
+        super()
       end
 
       def run
-        memory.hash[:remote_ids] = @remote_ids
-        memory.hash[:outputs] = @outputs
-        memory.hash[:labels] = @labels
-        memory.hash[:rom] = @rom.freeze
-        memory.hash[:deleted] = @deleted
-        memory.hash[:update_action] = {}
+        memory.hash = memory.hash.merge(
+          remote_ids: @remote_ids,
+          outputs: @outputs,
+          labels: @labels,
+          rom: @rom.freeze,
+          deleted: @deleted,
+          update_action: {}
+        )
       end
     end
   end

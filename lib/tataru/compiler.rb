@@ -61,6 +61,13 @@ module Tataru
 
     def generate_subroutines
       result = {}
+      result.merge!(deletion_resources)
+      result.merge!(update_resources)
+      result
+    end
+
+    def deletion_resources
+      result = {}
       # set up resources for deletion
       deletables.each do |k, v|
         desc = Tataru.const_get(v).new
@@ -68,7 +75,11 @@ module Tataru
         sp = SubPlanner.new(rrep, :delete)
         result.merge!(sp.subroutines)
       end
+      result
+    end
 
+    def update_resources
+      result = {}
       # set up resources for updates or creates
       updatables.each do |k, rrep|
         action = @extant.key?(k) ? :update : :create

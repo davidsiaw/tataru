@@ -6,18 +6,19 @@ module Tataru
     class ReadInstruction < ResourceInstruction
       def run
         results = resource.read(fields)
-        memory.hash[:temp][resource_name] = {}
+        info = {}
         fields.each do |k|
-          memory.hash[:temp][resource_name][k] = results[k]
+          info[k] = results[k]
         end
+        memory.hash[:temp][resource_name] = info
       end
 
       def resource_class
-        desc.resource_class
+        @resource_class ||= desc.resource_class
       end
 
       def resource
-        resource_class.new(memory.hash[:remote_ids][resource_name])
+        @resource ||= resource_class.new(memory.hash[:remote_ids][resource_name])
       end
 
       def fields

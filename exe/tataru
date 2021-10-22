@@ -55,7 +55,7 @@ tatarufile = 'Tatarufile'
 statefile = "#{tatarufile}.state"
 
 cur_state = {}
-cur_state = (YAML.load(File.read(statefile)) || {}) if File.exist?(statefile)
+cur_state = (YAML.safe_load(File.read(statefile)) || {}) if File.exist?(statefile)
 
 ttr = Tatarufile.new(cur_state) do
   instance_eval(File.read(tatarufile), tatarufile)

@@ -5,9 +5,9 @@ module Tataru
     # representing arrays
     class ArrayRepresentation < Representation
       def initialize(value)
-        @value = value.map do |thing|
+        super(value.map do |thing|
           Resolver.new(thing).representation
-        end.to_a
+        end.to_a)
       end
 
       def dependencies

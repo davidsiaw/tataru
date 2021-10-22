@@ -6,6 +6,7 @@ module Tataru
     class CheckInstruction < ResourceInstruction
       def initialize(check_type)
         @check_type = check_type
+        super()
       end
 
       def run

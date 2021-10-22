@@ -9,6 +9,7 @@ module Tataru
       def initialize(resource_name, output_field_name)
         @resource_name = resource_name
         @output_field_name = output_field_name
+        super(nil)
       end
 
       def dependencies

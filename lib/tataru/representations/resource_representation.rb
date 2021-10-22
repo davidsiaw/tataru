@@ -11,6 +11,7 @@ module Tataru
         @properties = properties
         @desc = desc
         check_late_deletability!
+        super(nil)
       end
 
       def check_late_deletability!

@@ -19,9 +19,10 @@ module Tataru
       return [] unless @thehash[:instructions]
 
       @thehash[:instructions].map do |action|
-        if action == :init
+        case action
+        when :init
           init_instruction
-        elsif action.is_a? Hash
+        when Hash
           # immediate mode instruction
           instruction_for(action.keys[0]).new(action.values[0])
         else
