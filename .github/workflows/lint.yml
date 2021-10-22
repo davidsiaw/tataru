@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   lint:
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-latest
     name: Lint
     steps:
       - uses: actions/checkout@v2
