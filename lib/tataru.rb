@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'active_support/isolated_execution_state'
 require 'active_support/inflector'
 require 'tataru/rom_reader'
 require 'tataru/base_resource'
