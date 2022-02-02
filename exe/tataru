@@ -39,7 +39,7 @@ class Tatarufile
   end
 
   def run
-    ttr = Tataru::Taru.new(rtp, @cur_state, &@desc)
+    ttr = Tataru::Taru.new(rtp, @cur_state, create_missing: false, &@desc)
 
     loop do
       break unless ttr.step
