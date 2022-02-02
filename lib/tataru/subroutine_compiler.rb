@@ -7,9 +7,10 @@ module Tataru
     include UpdateSubroutines
     include DeleteSubroutines
 
-    def initialize(resource_representation, action)
+    def initialize(resource_representation, create_missing, action)
       @rrep = resource_representation
       @action = action
+      @create_missing = create_missing
     end
 
     def desc

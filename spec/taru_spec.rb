@@ -108,6 +108,108 @@ describe Tataru::Taru do
     )
   end
 
+  it 'recreates a non-existent resource when create_missing is true' do
+    TestEnvironment.instance.clear!
+
+    TestEnvironment.instance.files = {}
+
+    rtp = Tataru::ResourceTypePool.new
+    rtp.add_resource_desc(:file, TestFileResourceDesc)
+    remote_ids = {
+      'file2' => {
+        name: 'something2.txt',
+        desc: 'TestFileResourceDesc',
+        dependencies: []
+      }
+    }
+
+    ttr = Tataru::Taru.new(rtp, remote_ids, create_missing: true) do
+      resource :file, 'file2' do
+        name 'something2.txt'
+        contents '123'
+      end
+    end
+
+    travel_to Time.new(2011, 1, 1, 0, 0, 0, '+00:00') do
+      loop do
+        break unless ttr.step
+      end
+    end
+
+    expect(ttr.error).to be_nil
+
+
+    expect(ttr.oplog).to eq [
+      {operation: 'CHECK_EXIST', resource: 'file2'},
+      {operation: 'CREATE', resource: 'file2'},
+      {operation: 'CHECK_CREATE', resource: 'file2'}
+    ]
+
+    expect(TestEnvironment.instance.files).to eq(
+      'something2.txt' => {
+        name: 'something2.txt',
+        contents: '123',
+        created_at: "2011-01-01 00:00:00 UTC",
+        updated_at: "2011-01-01 00:00:00 UTC"
+      }
+    )
+
+    expect(ttr.state).to eq(
+      'file2' => {
+        name: 'something2.txt',
+        desc: 'TestFileResourceDesc',
+        dependencies: []
+      }
+    )
+  end
+
+  it 'errors on non-existent resource if create_missing is false' do
+    # when a state says a resource exists but it doesn't really this is
+    # what happens
+    TestEnvironment.instance.clear!
+
+    TestEnvironment.instance.files = {}
+
+    rtp = Tataru::ResourceTypePool.new
+    rtp.add_resource_desc(:file, TestFileResourceDesc)
+    remote_ids = {
+      'file2' => {
+        name: 'something2.txt',
+        desc: 'TestFileResourceDesc',
+        dependencies: []
+      }
+    }
+
+    ttr = Tataru::Taru.new(rtp, remote_ids, create_missing: false) do
+      resource :file, 'file2' do
+        name 'something2.txt'
+        contents '123'
+      end
+    end
+
+    travel_to Time.new(2011, 1, 1, 0, 0, 0, '+00:00') do
+      loop do
+        break unless ttr.step
+      end
+    end
+
+    expect(ttr.error).to be_a Tataru::Exceptions::ResourceNotExist
+
+    expect(ttr.oplog).to eq [
+      {operation: 'CHECK_EXIST', resource: 'file2'}
+    ]
+
+    expect(TestEnvironment.instance.files).to eq({})
+
+    expect(ttr.state).to eq(
+      'file2' => {
+        name: 'something2.txt',
+        desc: 'TestFileResourceDesc',
+        dependencies: []
+      }
+    )
+  end
+
   it 'builds and deletes one overlapping resource' do
     TestEnvironment.instance.clear!
 
@@ -217,6 +319,7 @@ describe Tataru::Taru do
     expect(ttr.error).to be_nil
 
     expect(ttr.oplog).to eq [
+      {operation: 'CHECK_EXIST', resource: 'file'},
       {operation: 'READ', resource: 'file'},
       {operation: 'RESCMP', resource: 'file'},
       {operation: 'READ', resource: 'file'},
@@ -281,6 +384,7 @@ describe Tataru::Taru do
     expect(ttr.error).to be_nil
 
     expect(ttr.oplog).to eq [
+      {operation: 'CHECK_EXIST', resource: 'file'},
       {operation: 'READ', resource: 'file'},
       {operation: 'RESCMP', resource: 'file'},
       {operation: 'DELETE', resource: 'file'},
@@ -358,11 +462,13 @@ describe Tataru::Taru do
     expect(ttr.error).to be_nil
 
     expect(ttr.oplog).to eq [
+      {operation: 'CHECK_EXIST', resource: 'serv'},
       {operation: 'READ', resource: 'serv'},
       {operation: 'RESCMP', resource: 'serv'},
       {operation: 'MARK_DELETABLE', resource: 'serv'},
       {operation: 'CREATE', resource: 'serv'},
       {operation: 'CHECK_CREATE', resource: 'serv'},
+      {operation: 'CHECK_EXIST', resource: 'ip'},
       {operation: 'READ', resource: 'ip'},
       {operation: 'RESCMP', resource: 'ip'},
       {operation: 'READ', resource: 'ip'},
@@ -533,11 +639,13 @@ describe Tataru::Taru do
     expect(ttr.error).to be_a RuntimeError
 
     expect(ttr.oplog).to eq [
+      {operation: 'CHECK_EXIST', resource: 'serv'},
       {operation: 'READ', resource: 'serv'},
       {operation: 'RESCMP', resource: 'serv'},
       {operation: 'MARK_DELETABLE', resource: 'serv'},
       {operation: 'CREATE', resource: 'serv'},
       {operation: 'CHECK_CREATE', resource: 'serv'},
+      {operation: 'CHECK_EXIST', resource: 'ip'},
       {operation: 'READ', resource: 'ip'},
       {operation: 'RESCMP', resource: 'ip'},
       {operation: 'READ', resource: 'ip'},
@@ -598,8 +706,10 @@ describe Tataru::Taru do
     expect(ttr2.error).to be_nil
 
     expect(ttr2.oplog).to eq [
+      {operation: 'CHECK_EXIST', resource: 'serv'},
       {operation: 'READ', resource: 'serv'},
       {operation: 'RESCMP', resource: 'serv'},
+      {operation: 'CHECK_EXIST', resource: 'ip'},
       {operation: 'READ', resource: 'ip'},
       {operation: 'RESCMP', resource: 'ip'},
       {operation: 'DELETE', resource: '_deletable_serv'},

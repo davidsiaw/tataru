@@ -2,6 +2,7 @@
 
 require 'active_support/isolated_execution_state'
 require 'active_support/inflector'
+require 'tataru/exceptions/resource_not_exist'
 require 'tataru/rom_reader'
 require 'tataru/base_resource'
 require 'tataru/base_resource_desc'
@@ -27,10 +28,10 @@ require 'tataru/runner'
 module Tataru
   # Entry class
   class Taru
-    def initialize(rtp, current_state = {}, &block)
+    def initialize(rtp, current_state = {}, create_missing: false, &block)
       @rtp = rtp
       @current_state = current_state
-      @quest = Tataru::Quest.new(rtp, current_state)
+      @quest = Tataru::Quest.new(rtp, create_missing, current_state)
       @quest.construct(&block)
       @ih = Tataru::InstructionHash.new(@quest.instr_hash)
       @runner = Tataru::Runner.new(@ih.instruction_list)

@@ -1,10 +1,17 @@
 # frozen_string_literal: true
 
+require 'tataru/recreate_subroutines'
+require 'tataru/missing_create_subroutines'
+
 module Tataru
   # update subroutines
   module UpdateSubroutines
+    include RecreateSubroutines
+    include MissingCreateSubroutines
+
     def update_instructions
       [
+        *create_missing_resource_instructions,
         *load_resource_instructions,
         :read,
         *load_resource_instructions,
@@ -18,8 +25,29 @@ module Tataru
       ]
     end
 
+    def create_missing_resource_instructions
+      [
+        *load_resource_instructions,
+        :check_exist,
+        { compare: true },
+        *missing_resource_action
+      ]
+    end
+
+    def missing_resource_action
+      return [{ assert: :resource_not_exist }] unless @create_missing
+
+      [
+        :invert,
+        { goto_if: "missing_create_#{@rrep.name}" }
+      ]
+    end
+
     def check_update_instructions
       [
+        { value_update: @rrep.name },
+        { compare: :missing },
+        { goto_if: "missing_create_check_#{@rrep.name}" },
         { value_update: @rrep.name },
         { compare: :recreate },
         { goto_if: "recreate_check_#{@rrep.name}" },
@@ -62,53 +90,6 @@ module Tataru
       [
         *load_resource_instructions,
         :check_update
-      ]
-    end
-
-    def recreate_instructions
-      deletion_routine = [
-        *load_resource_instructions,
-        :mark_deletable
-      ]
-      unless desc.delete_at_end?
-        deletion_routine = [
-          *delete_instructions,
-          *check_delete_instructions
-        ]
-      end
-      [
-        *deletion_routine,
-        *create_instructions
-      ]
-    end
-
-    def recreate_check_instructions
-      [
-        *check_create_instructions
-      ]
-    end
-
-    def recreate_commit_instructions
-      return [] unless desc.delete_at_end?
-
-      [
-        { key: :resource_name },
-        { value: "_deletable_#{@rrep.name}" },
-        { key: :resource_desc },
-        { value: @rrep.desc.class.name },
-        :delete
-      ]
-    end
-
-    def recreate_finish_instructions
-      return [] unless desc.delete_at_end?
-
-      [
-        { key: :resource_name },
-        { value: "_deletable_#{@rrep.name}" },
-        { key: :resource_desc },
-        { value: @rrep.desc.class.name },
-        :check_delete
       ]
     end
   end

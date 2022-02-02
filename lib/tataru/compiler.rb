@@ -5,10 +5,11 @@ require 'bunny/tsort'
 module Tataru
   # compiler
   class Compiler
-    def initialize(dsl, extant_resources = {}, extant_dependencies = {})
+    def initialize(dsl, create_missing, extant_resources = {}, extant_dependencies = {})
       @dsl = dsl
       @extant = extant_resources
       @extant_dependencies = extant_dependencies
+      @create_missing = create_missing
     end
 
     def instr_hash
@@ -72,7 +73,7 @@ module Tataru
       deletables.each do |k, v|
         desc = Tataru.const_get(v).new
         rrep = Representations::ResourceRepresentation.new(k, desc, {})
-        sp = SubPlanner.new(rrep, :delete)
+        sp = SubPlanner.new(rrep, :delete, @create_missing)
         result.merge!(sp.subroutines)
       end
       result
@@ -83,7 +84,7 @@ module Tataru
       # set up resources for updates or creates
       updatables.each do |k, rrep|
         action = @extant.key?(k) ? :update : :create
-        sp = SubPlanner.new(rrep, action)
+        sp = SubPlanner.new(rrep, action, @create_missing)
         result.merge!(sp.subroutines)
       end
       result

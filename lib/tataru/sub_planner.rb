@@ -3,9 +3,10 @@
 module Tataru
   # returns subroutines required based on the resource
   class SubPlanner
-    def initialize(rrep, action)
+    def initialize(rrep, action, create_missing)
       @rrep = rrep
       @action = action
+      @create_missing = create_missing
     end
 
     def name
@@ -13,7 +14,7 @@ module Tataru
     end
 
     def compile(*args)
-      SubroutineCompiler.new(@rrep, *args)
+      SubroutineCompiler.new(@rrep, @create_missing, *args)
     end
 
     def extra_subroutines
@@ -25,7 +26,9 @@ module Tataru
         "#{name}_recreate" => compile(:recreate),
         "#{name}_recreate_check" => compile(:recreate_check),
         "#{name}_recreate_commit" => compile(:recreate_commit),
-        "#{name}_recreate_finish" => compile(:recreate_finish)
+        "#{name}_recreate_finish" => compile(:recreate_finish),
+        "#{name}_missing_create" => compile(:missing_create),
+        "#{name}_missing_create_check" => compile(:missing_create_check)
       }
     end
 

@@ -161,6 +161,10 @@ class TestFileResource < Tataru::BaseResource
     TestEnvironment.instance.file(@remote_id)
   end
 
+  def exist?
+    TestEnvironment.instance.exists_file?(@remote_id)
+  end
+
   def create_complete?
     # check if creation is complete
     true

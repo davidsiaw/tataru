@@ -31,6 +31,11 @@ module Tataru
       {}
     end
 
+    def exist?
+      # check that resource exists
+      true
+    end
+
     def create_complete?
       # check if creation is complete
       true

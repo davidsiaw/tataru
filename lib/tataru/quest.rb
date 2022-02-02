@@ -5,9 +5,10 @@ module Tataru
   class Quest
     attr_reader :dsl
 
-    def initialize(pool, current_state = {})
+    def initialize(pool, create_missing, current_state = {})
       @pool = pool
       @current_state = current_state
+      @create_missing = create_missing
       @dsl = TopDsl.new(pool)
     end
 
@@ -34,7 +35,7 @@ module Tataru
     end
 
     def instr_hash
-      c = Compiler.new(@dsl, extant_resources, extant_dependencies)
+      c = Compiler.new(@dsl, @create_missing, extant_resources, extant_dependencies)
       result = c.instr_hash
       result[:init][:remote_ids] = remote_ids
       result
